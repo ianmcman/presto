@@ -1,0 +1,43 @@
+# Project State
+
+## Project Reference
+
+See: .planning/PROJECT.md (updated 2026-10-07)
+
+**Core value:** Full-catalog Apple Music playback and library browsing from a fast native Linux UI, without an Apple Developer account.
+**Current focus:** Phase 1: IPC Contract and Mock Engine
+
+## Current Position
+
+Phase: 1 of 7 (IPC Contract and Mock Engine)
+Plan: 0 of TBD
+Status: Ready to plan
+Last activity: 2026-10-07 - Roadmap created
+
+Progress: [░░░░░░░░░░] 0%
+
+## Performance Metrics
+
+None yet.
+
+## Accumulated Context
+
+### Decisions
+
+- Phase 2 is a go/no-go gate: stop for user approval before detailed planning of Phases 3 to 7.
+- IPC-04 (`--demo`) is mapped to Phase 5 because it needs the UI; the mock engine itself lands in Phase 1.
+
+### Pending Todos
+
+- Decide stdio vs Unix socket transport in Phase 1 (default: child stdio).
+
+### Blockers/Concerns
+
+- Read current Apple Media Services terms before the spike.
+- ECS tag v44.1.0 unconfirmed.
+
+## Session Continuity
+
+Last session: 2026-10-07
+Stopped at: Roadmap created
+Resume file: None

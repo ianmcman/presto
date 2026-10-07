@@ -83,11 +83,41 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| IPC-01 | Phase 1 | Pending |
+| IPC-02 | Phase 1 | Pending |
+| IPC-03 | Phase 1 | Pending |
+| IPC-04 | Phase 5 | Pending |
+| CORE-01 | Phase 3 | Pending |
+| CORE-02 | Phase 3 | Pending |
+| CORE-03 | Phase 3 | Pending |
+| AUTH-01 | Phase 3 | Pending |
+| AUTH-02 | Phase 3 | Pending |
+| AUTH-03 | Phase 3 | Pending |
+| PLAY-01 | Phase 5 | Pending |
+| PLAY-02 | Phase 5 | Pending |
+| PLAY-03 | Phase 5 | Pending |
+| PLAY-04 | Phase 5 | Pending |
+| DESK-01 | Phase 6 | Pending |
+| DESK-02 | Phase 6 | Pending |
+| PKG-01 | Phase 7 | Pending |
+| PKG-02 | Phase 7 | Pending |
+| SPIKE-01 | Phase 2 | Pending |
+| SPIKE-02 | Phase 2 | Pending |
+| SPIKE-03 | Phase 2 | Pending |
+| SPIKE-04 | Phase 2 | Pending |
+| SPIKE-05 | Phase 2 | Pending |
+| SPIKE-06 | Phase 2 | Pending |
+| DATA-01 | Phase 4 | Pending |
+| DATA-02 | Phase 4 | Pending |
+| DATA-03 | Phase 4 | Pending |
+| DATA-04 | Phase 4 | Pending |
+| DATA-05 | Phase 4 | Pending |
+| DATA-06 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26 ⚠️
+- v1 requirements: 30 total
+- Mapped to phases: 30
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-10-07*
