@@ -6,6 +6,7 @@ mod fault;
 mod frame;
 mod kind;
 mod request;
+pub mod transport;
 
 pub use command::{Command, RepeatMode};
 pub use event::{AuthState, Event, PlayState, QueueItem};
