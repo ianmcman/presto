@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::collections::BTreeSet;
 
 pub const FORBIDDEN: &[&str] = &[
@@ -13,7 +15,6 @@ pub const FORBIDDEN: &[&str] = &[
 ];
 
 // Exact-match exceptions (D-15). Each is a state name, not a credential.
-#[allow(dead_code)]
 pub const ALLOW: &[&str] = &[
     "auth",         // Event::Auth variant tag; payload is AuthState only
     "auth_expired", // ErrorKind::AuthExpired and FaultSpec::AuthExpired tags
