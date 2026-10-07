@@ -8,7 +8,7 @@
 ### IPC and Mock Engine
 
 - [x] **IPC-01**: Protocol crate defines versioned command, request/response and event messages as JSON, with request IDs and per-kind timeouts
-- [ ] **IPC-02**: No IPC type carries an Apple token field, enforced by a schema test
+- [x] **IPC-02**: No IPC type carries an Apple token field, enforced by a schema test
 - [ ] **IPC-03**: A mock engine implements the same protocol, with fault injection (hang, crash, auth_expired, slow)
 - [ ] **IPC-04**: User can launch `presto --demo` and use the UI with no account or Widevine
 
@@ -84,7 +84,7 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | IPC-01 | Phase 1 | Complete |
-| IPC-02 | Phase 1 | Pending |
+| IPC-02 | Phase 1 | Complete |
 | IPC-03 | Phase 1 | Pending |
 | IPC-04 | Phase 5 | Pending |
 | CORE-01 | Phase 3 | Pending |

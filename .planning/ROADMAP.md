@@ -29,7 +29,7 @@ Fix the engine-neutral IPC contract and a mock engine first, then run the engine
 
 Plans:
 - [x] 01-01-PLAN.md: Toolchain, workspace, presto-ipc wire types, timeouts, socket transport (wave 1)
-- [ ] 01-02-PLAN.md: Schema snapshot and token guard, PROTOCOL.md with coverage test, spotifast seam notes (wave 2)
+- [x] 01-02-PLAN.md: Schema snapshot and token guard, PROTOCOL.md with coverage test, spotifast seam notes (wave 2)
 - [ ] 01-03-PLAN.md: Mock engine: catalog, playback clock, protocol loop and integration test (wave 2)
 - [ ] 01-04-PLAN.md: Mock fault injection (hang, crash, auth_expired, slow) by flag and live frame (wave 3)
 
