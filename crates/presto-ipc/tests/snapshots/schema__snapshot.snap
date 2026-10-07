@@ -1,0 +1,893 @@
+---
+source: crates/presto-ipc/tests/schema.rs
+expression: "schemars::schema_for!(presto_ipc::Frame)"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Frame",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "t": {
+          "type": "string",
+          "const": "hello"
+        }
+      },
+      "$ref": "#/$defs/Hello",
+      "required": [
+        "t"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "cmd": {
+          "$ref": "#/$defs/Command"
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "const": "cmd"
+        }
+      },
+      "required": [
+        "t",
+        "id",
+        "cmd"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "req": {
+          "$ref": "#/$defs/ApiRequest"
+        },
+        "t": {
+          "type": "string",
+          "const": "req"
+        }
+      },
+      "required": [
+        "t",
+        "id",
+        "req"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "outcome": {
+          "$ref": "#/$defs/Outcome"
+        },
+        "t": {
+          "type": "string",
+          "const": "res"
+        }
+      },
+      "required": [
+        "t",
+        "id",
+        "outcome"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "evt": {
+          "$ref": "#/$defs/Event"
+        },
+        "t": {
+          "type": "string",
+          "const": "evt"
+        }
+      },
+      "required": [
+        "t",
+        "evt"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "const": "ping"
+        }
+      },
+      "required": [
+        "t",
+        "seq"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "const": "pong"
+        }
+      },
+      "required": [
+        "t",
+        "seq"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "fault": {
+          "$ref": "#/$defs/FaultSpec"
+        },
+        "id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "t": {
+          "type": "string",
+          "const": "mock"
+        }
+      },
+      "required": [
+        "t",
+        "id",
+        "fault"
+      ]
+    }
+  ],
+  "$defs": {
+    "ApiRequest": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "default": null
+        },
+        "method": {
+          "$ref": "#/$defs/HttpMethod"
+        },
+        "path": {
+          "description": "e.g. \"/v1/me/library/playlists\"",
+          "type": "string"
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        }
+      },
+      "required": [
+        "method",
+        "path"
+      ]
+    },
+    "AuthState": {
+      "type": "string",
+      "enum": [
+        "signed_out",
+        "signing_in",
+        "signed_in",
+        "expired"
+      ]
+    },
+    "Command": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "play"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "pause"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ms": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "seek"
+            }
+          },
+          "required": [
+            "type",
+            "ms"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "next"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "prev"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "description": "0.0..=1.0",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "set_volume"
+            },
+            "volume": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "required": [
+            "type",
+            "volume"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "on": {
+              "type": "boolean"
+            },
+            "type": {
+              "type": "string",
+              "const": "set_shuffle"
+            }
+          },
+          "required": [
+            "type",
+            "on"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "$ref": "#/$defs/RepeatMode"
+            },
+            "type": {
+              "type": "string",
+              "const": "set_repeat"
+            }
+          },
+          "required": [
+            "type",
+            "mode"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "start": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "set_queue"
+            }
+          },
+          "required": [
+            "type",
+            "ids",
+            "start"
+          ]
+        }
+      ]
+    },
+    "ErrorKind": {
+      "description": "`Timeout` is synthesized locally by the requester when `Kind::timeout` elapses;\nengines may also send it.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "const": "timeout"
+            }
+          },
+          "required": [
+            "code"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "const": "auth_expired"
+            }
+          },
+          "required": [
+            "code"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "const": "rate_limited"
+            },
+            "retry_after_ms": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "code"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "const": "not_found"
+            }
+          },
+          "required": [
+            "code"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "const": "unavailable"
+            }
+          },
+          "required": [
+            "code"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "const": "upstream"
+            },
+            "status": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            }
+          },
+          "required": [
+            "code",
+            "status"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "const": "internal"
+            }
+          },
+          "required": [
+            "code"
+          ]
+        }
+      ]
+    },
+    "Event": {
+      "description": "`seq` increments on every user-initiated state change (play, pause, seek,\nskip, set_queue) so receivers drop stale Progress.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "seq": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "state": {
+              "$ref": "#/$defs/PlayState"
+            },
+            "type": {
+              "type": "string",
+              "const": "playback_state"
+            }
+          },
+          "required": [
+            "type",
+            "state",
+            "seq"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "duration_ms": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "position_ms": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "seq": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "progress"
+            }
+          },
+          "required": [
+            "type",
+            "position_ms",
+            "duration_ms",
+            "seq"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "item": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/QueueItem"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "track_changed"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "index": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/QueueItem"
+              }
+            },
+            "rev": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "queue_changed"
+            }
+          },
+          "required": [
+            "type",
+            "rev",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "volume"
+            },
+            "volume": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "required": [
+            "type",
+            "volume"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "on": {
+              "type": "boolean"
+            },
+            "type": {
+              "type": "string",
+              "const": "shuffle"
+            }
+          },
+          "required": [
+            "type",
+            "on"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "$ref": "#/$defs/RepeatMode"
+            },
+            "type": {
+              "type": "string",
+              "const": "repeat"
+            }
+          },
+          "required": [
+            "type",
+            "mode"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "state": {
+              "$ref": "#/$defs/AuthState"
+            },
+            "type": {
+              "type": "string",
+              "const": "auth"
+            }
+          },
+          "required": [
+            "type",
+            "state"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "error": {
+              "$ref": "#/$defs/IpcError"
+            },
+            "type": {
+              "type": "string",
+              "const": "error"
+            }
+          },
+          "required": [
+            "type",
+            "error"
+          ]
+        }
+      ]
+    },
+    "FaultSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "hang"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "after_ms": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "crash"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "auth_expired"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "delay_ms": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "slow"
+            }
+          },
+          "required": [
+            "kind",
+            "delay_ms"
+          ]
+        }
+      ]
+    },
+    "Hello": {
+      "type": "object",
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "engine": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "proto": {
+          "$ref": "#/$defs/ProtoVersion"
+        },
+        "role": {
+          "$ref": "#/$defs/Role"
+        }
+      },
+      "required": [
+        "proto",
+        "role",
+        "capabilities"
+      ]
+    },
+    "HttpMethod": {
+      "type": "string",
+      "enum": [
+        "get",
+        "post",
+        "put",
+        "patch",
+        "delete"
+      ]
+    },
+    "IpcError": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ErrorKind"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "message"
+      ]
+    },
+    "Outcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "default": null
+            },
+            "status": {
+              "type": "string",
+              "const": "ok"
+            }
+          },
+          "required": [
+            "status"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "error": {
+              "$ref": "#/$defs/IpcError"
+            },
+            "status": {
+              "type": "string",
+              "const": "err"
+            }
+          },
+          "required": [
+            "status",
+            "error"
+          ]
+        }
+      ]
+    },
+    "PlayState": {
+      "type": "string",
+      "enum": [
+        "stopped",
+        "loading",
+        "playing",
+        "paused",
+        "ended"
+      ]
+    },
+    "ProtoVersion": {
+      "type": "object",
+      "properties": {
+        "major": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "minor": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "major",
+        "minor"
+      ]
+    },
+    "QueueItem": {
+      "type": "object",
+      "properties": {
+        "album": {
+          "type": "string"
+        },
+        "artist": {
+          "type": "string"
+        },
+        "artwork_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "duration_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "id": {
+          "type": "string"
+        },
+        "playable": {
+          "type": "boolean"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "artist",
+        "album",
+        "duration_ms",
+        "playable"
+      ]
+    },
+    "RepeatMode": {
+      "type": "string",
+      "enum": [
+        "off",
+        "one",
+        "all"
+      ]
+    },
+    "Role": {
+      "type": "string",
+      "enum": [
+        "presto",
+        "engine"
+      ]
+    }
+  }
+}
