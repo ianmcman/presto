@@ -1,11 +1,15 @@
 mod catalog;
+mod fault;
 mod player;
 
 use clap::Parser;
+use fault::Faults;
 use futures_util::StreamExt;
 use player::Player;
 use presto_ipc::transport::{self, TransportError};
-use presto_ipc::{AuthState, Event, Frame, Hello, Kind, Outcome, PROTO, Role, caps};
+use presto_ipc::{
+    AuthState, ErrorKind, Event, FaultSpec, Frame, Hello, IpcError, Kind, Outcome, PROTO, Role, caps,
+};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use tokio::time::MissedTickBehavior;
@@ -18,20 +22,66 @@ struct Args {
     #[arg(long, env = "PRESTO_PROFILE")]
     #[allow(dead_code)]
     profile: Option<PathBuf>,
+    /// Startup fault, repeatable: none, hang, crash[@ms], auth_expired, slow[=ms].
+    #[arg(long = "fault", value_parser = |s: &str| s.parse::<FaultSpec>())]
+    faults: Vec<FaultSpec>,
 }
 
 struct Engine {
     player: Player,
+    faults: Faults,
 }
 
 fn evts(events: Vec<Event>) -> Vec<Frame> {
     events.into_iter().map(|evt| Frame::Evt { evt }).collect()
 }
 
+fn crash(after_ms: Option<u64>) {
+    match after_ms {
+        None => {
+            eprintln!("mock: crash fault");
+            std::process::exit(101);
+        }
+        Some(ms) => {
+            tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_millis(ms)).await;
+                eprintln!("mock: crash fault");
+                std::process::exit(101);
+            });
+        }
+    }
+}
+
+fn ok() -> Outcome {
+    Outcome::Ok {
+        data: serde_json::Value::Null,
+    }
+}
+
 impl Engine {
+    fn apply_fault(&mut self, spec: &FaultSpec) -> Vec<Frame> {
+        if let FaultSpec::Crash { after_ms } = spec {
+            crash(*after_ms);
+        }
+        evts(self.faults.apply(spec))
+    }
+
     fn handle(&mut self, frame: Frame, now: Instant) -> Vec<Frame> {
         match frame {
             Frame::Ping { seq } => vec![Frame::Pong { seq }],
+            Frame::Mock { id, fault } => {
+                let mut out = self.apply_fault(&fault);
+                out.push(Frame::Res { id, outcome: ok() });
+                out
+            }
+            Frame::Cmd { id, .. } | Frame::Req { id, .. } if self.faults.auth_expired => {
+                vec![Frame::Res {
+                    id,
+                    outcome: Outcome::Err {
+                        error: IpcError::new(ErrorKind::AuthExpired, "mock: session expired"),
+                    },
+                }]
+            }
             Frame::Cmd { id, cmd } => match self.player.apply(&cmd, now) {
                 Ok(events) => {
                     let mut out = evts(events);
@@ -51,15 +101,6 @@ impl Engine {
             Frame::Req { id, req } => vec![Frame::Res {
                 id,
                 outcome: catalog::handle(&req),
-            }],
-            Frame::Mock { id, .. } => vec![Frame::Res {
-                id,
-                outcome: Outcome::Err {
-                    error: presto_ipc::IpcError::new(
-                        presto_ipc::ErrorKind::Internal,
-                        "fault injection not implemented",
-                    ),
-                },
             }],
             other => {
                 eprintln!("mock: ignoring unexpected frame {other:?}");
@@ -115,25 +156,49 @@ async fn main() {
             std::process::exit(2);
         }
     }
-    let auth = Frame::Evt {
-        evt: Event::Auth {
-            state: AuthState::SignedIn,
-        },
-    };
-    if let Err(e) = transport::send(&mut conn, &auth).await {
-        send_failed(e);
-    }
-
     let mut engine = Engine {
         player: Player::new(Instant::now()),
+        faults: Faults::default(),
     };
+    let mut startup = vec![];
+    for spec in &args.faults {
+        startup.extend(engine.apply_fault(spec));
+    }
+    if startup.is_empty() {
+        startup = evts(vec![Event::Auth {
+            state: AuthState::SignedIn,
+        }]);
+    }
     let mut ticker = tokio::time::interval(Duration::from_millis(500));
     ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
     let (mut sink, mut stream) = conn.split();
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Frame>();
+    // (frames, forced): forced frames (mock acks) bypass hang gating and slow delay
+    let mut out = (startup, false);
     loop {
-        let out = tokio::select! {
+        let (frames, forced) = std::mem::take(&mut out);
+        for f in frames {
+            if engine.faults.hang && !forced {
+                continue;
+            }
+            if let (Frame::Res { .. }, Some(d), false) = (&f, engine.faults.slow, forced) {
+                let tx = tx.clone();
+                tokio::spawn(async move {
+                    tokio::time::sleep(d).await;
+                    let _ = tx.send(f);
+                });
+                continue;
+            }
+            if let Err(e) = transport::send(&mut sink, &f).await {
+                send_failed(e);
+            }
+        }
+        out = tokio::select! {
             r = transport::recv(&mut stream) => match r {
-                Ok(Some(f)) => engine.handle(f, Instant::now()),
+                Ok(Some(f)) => {
+                    let forced = matches!(f, Frame::Mock { .. });
+                    (engine.handle(f, Instant::now()), forced)
+                }
                 Ok(None) => std::process::exit(0),
                 Err(TransportError::Json(e)) => {
                     eprintln!("mock: bad frame: {e}");
@@ -144,12 +209,16 @@ async fn main() {
                     std::process::exit(1);
                 }
             },
-            _ = ticker.tick() => engine.tick(Instant::now()),
-        };
-        for f in out {
-            if let Err(e) = transport::send(&mut sink, &f).await {
-                send_failed(e);
+            _ = ticker.tick() => (engine.tick(Instant::now()), false),
+            Some(f) = rx.recv() => {
+                // delayed res: already slowed, still subject to hang
+                if !engine.faults.hang
+                    && let Err(e) = transport::send(&mut sink, &f).await
+                {
+                    send_failed(e);
+                }
+                continue;
             }
-        }
+        };
     }
 }
