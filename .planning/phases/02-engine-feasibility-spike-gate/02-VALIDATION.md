@@ -38,13 +38,13 @@ created: 2026-10-07
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 2-XX-XX | TBD | TBD | SPIKE-01 | live, manual | `cargo run -p presto-spike -- check musickit` | ❌ W0 | ⬜ pending |
-| 2-XX-XX | TBD | TBD | SPIKE-02 | manual + driver | `cargo run -p presto-spike -- check session` | ❌ W0 | ⬜ pending |
-| 2-XX-XX | TBD | TBD | SPIKE-03 | live | `cargo run -p presto-spike -- check playback` | ❌ W0 | ⬜ pending |
-| 2-XX-XX | TBD | TBD | SPIKE-04 | live | `cargo run -p presto-spike -- check api` | ❌ W0 | ⬜ pending |
-| 2-XX-XX | TBD | TBD | SPIKE-05 | live | `cargo run -p presto-spike -- check events` | ❌ W0 | ⬜ pending |
-| 2-XX-XX | TBD | TBD | SPIKE-06 | file check | `grep -c` required headings in SPIKE-REPORT.md | ❌ W0 | ⬜ pending |
-| 2-XX-XX | TBD | TBD | (offline) | integration | `cargo test -p presto-spike` against `presto-engine-mock` | ❌ W0 | ⬜ pending |
+| 02-04-03 | 02-04 | 3 | SPIKE-01 | live | `presto-spike check all` (musickit row) | ❌ W0 | ⬜ pending |
+| 02-04-02/03 | 02-04 | 3 | SPIKE-02 | manual + driver | `presto-spike signin`, then fresh `check all` (session row) | ❌ W0 | ⬜ pending |
+| 02-04-03, 02-05-03 | 02-04, 02-05 | 3, 4 | SPIKE-03 | live + listen | `presto-spike check all` (playback row) | ❌ W0 | ⬜ pending |
+| 02-04-03 | 02-04 | 3 | SPIKE-04 | live | `presto-spike check all` (api row) | ❌ W0 | ⬜ pending |
+| 02-04-03 | 02-04 | 3 | SPIKE-05 | live | `presto-spike check all` (events row) | ❌ W0 | ⬜ pending |
+| 02-05-01/02, 02-06-01 | 02-05, 02-06 | 4, 5 | SPIKE-06 | logs + file check | grep required headings in SPIKE-REPORT.md | ❌ W0 | ⬜ pending |
+| 02-02-01/02, 02-03-01 | 02-02, 02-03 | 1, 2 | (offline) | integration + unit | `cargo test -p presto-spike`; `node --test engine/test` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 

@@ -43,7 +43,15 @@ Plans:
   3. A Rust process calls `/v1/me/library/playlists` through the page and receives JSON, with no Apple token visible to Rust.
   4. Play, pause and progress events arrive in Rust while a track plays.
   5. A written report gives idle and playing RSS, hidden-window behavior on Wayland and X11, stream codec, queue API surface, MPRIS duplication, a candidate comparison, and a go/no-go recommendation for the user to approve.
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 02-01-PLAN.md: Terms gate (D-10), install castlabs ECS at the newest wvcus tag (wave 1)
+- [ ] 02-02-PLAN.md: presto-spike Rust driver (checklist, signin, measure) proven against the mock (wave 1)
+- [ ] 02-03-PLAN.md: Engine main.js, preload.js, bridge.js with stub-MusicKit tests (wave 2)
+- [ ] 02-04-PLAN.md: Live run: smoke, hand sign-in, hidden restart checklist on Wayland (wave 3)
+- [ ] 02-05-PLAN.md: Measurements: hidden-window and MPRIS matrix, RSS, codec, queue surface, listening check (wave 4)
+- [ ] 02-06-PLAN.md: SPIKE-REPORT.md, D-15 fallback check, go/no-go approval (wave 5)
 
 ### Phase 3: Core Backend, Supervisor, Auth
 **Goal**: The app runs a supervised engine reliably and the user can sign in once and stay signed in. (Outline; detail after spike approval.)
@@ -106,7 +114,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. IPC Contract and Mock Engine | 0/4 | Not started | - |
-| 2. Engine Feasibility Spike (GATE) | 0/TBD | Not started | - |
+| 2. Engine Feasibility Spike (GATE) | 0/6 | Not started | - |
 | 3. Core Backend, Supervisor, Auth | 0/TBD | Not started | - |
 | 4. Data Layer and Cache | 0/TBD | Not started | - |
 | 5. Playback UI and Demo Mode | 0/TBD | Not started | - |
