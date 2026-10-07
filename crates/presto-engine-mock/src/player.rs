@@ -131,7 +131,10 @@ impl Player {
                     })
                     .collect::<Result<Vec<_>, _>>()?;
                 if items.is_empty() || *start as usize >= items.len() {
-                    return Err(IpcError::new(ErrorKind::Internal, "start is outside the queue"));
+                    return Err(IpcError::new(
+                        ErrorKind::Internal,
+                        "start is outside the queue",
+                    ));
                 }
                 self.queue = items;
                 self.rev += 1;
@@ -147,7 +150,11 @@ impl Player {
             }
             Command::Play => {
                 self.require_queue()?;
-                let pos = if self.state == PlayState::Ended { 0 } else { self.position(now) };
+                let pos = if self.state == PlayState::Ended {
+                    0
+                } else {
+                    self.position(now)
+                };
                 self.base_ms = pos;
                 self.base_at = now;
                 self.state = PlayState::Playing;
@@ -185,7 +192,9 @@ impl Player {
             }
             Command::SetVolume { volume } => {
                 self.volume = volume.clamp(0.0, 1.0);
-                Ok(vec![Event::Volume { volume: self.volume }])
+                Ok(vec![Event::Volume {
+                    volume: self.volume,
+                }])
             }
             Command::SetShuffle { on } => {
                 // ponytail: shuffle does not reorder the mock queue; reorder if a UI test needs it
@@ -221,7 +230,10 @@ mod tests {
     use std::time::Duration;
 
     fn q(ids: &[&str], start: u32) -> Command {
-        Command::SetQueue { ids: ids.iter().map(|s| s.to_string()).collect(), start }
+        Command::SetQueue {
+            ids: ids.iter().map(|s| s.to_string()).collect(),
+            start,
+        }
     }
     fn secs(t0: Instant, s: u64) -> Instant {
         t0 + Duration::from_secs(s)
@@ -238,9 +250,22 @@ mod tests {
         let t0 = Instant::now();
         let mut p = Player::new(t0);
         let ev = p.apply(&q(&["s1", "s2"], 0), t0).unwrap();
-        assert!(matches!(&ev[0], Event::QueueChanged { rev: 1, index: Some(0), .. }));
+        assert!(matches!(
+            &ev[0],
+            Event::QueueChanged {
+                rev: 1,
+                index: Some(0),
+                ..
+            }
+        ));
         assert!(matches!(&ev[1], Event::TrackChanged { item: Some(i) } if i.id == "s1"));
-        assert!(matches!(ev[2], Event::PlaybackState { state: PlayState::Playing, .. }));
+        assert!(matches!(
+            ev[2],
+            Event::PlaybackState {
+                state: PlayState::Playing,
+                ..
+            }
+        ));
         assert!(matches!(ev[3], Event::Progress { position_ms: 0, .. }));
     }
 
@@ -260,25 +285,53 @@ mod tests {
     fn natural_advance_and_end() {
         let (mut p, t0) = started();
         let ev = p.tick(secs(t0, 184));
-        assert!(matches!(&ev[0], Event::QueueChanged { rev: 2, index: Some(1), .. }));
+        assert!(matches!(
+            &ev[0],
+            Event::QueueChanged {
+                rev: 2,
+                index: Some(1),
+                ..
+            }
+        ));
         assert!(matches!(&ev[1], Event::TrackChanged { item: Some(i) } if i.id == "s2"));
         let ev = p.tick(secs(t0, 184 + 205));
-        assert!(matches!(ev[0], Event::PlaybackState { state: PlayState::Ended, .. }));
+        assert!(matches!(
+            ev[0],
+            Event::PlaybackState {
+                state: PlayState::Ended,
+                ..
+            }
+        ));
         assert!(p.tick(secs(t0, 1000)).is_empty());
     }
 
     #[test]
     fn repeat_all_wraps_and_one_restarts() {
         let (mut p, t0) = started();
-        p.apply(&Command::SetRepeat { mode: RepeatMode::All }, t0).unwrap();
+        p.apply(
+            &Command::SetRepeat {
+                mode: RepeatMode::All,
+            },
+            t0,
+        )
+        .unwrap();
         p.apply(&Command::Next, t0).unwrap();
         let ev = p.apply(&Command::Next, t0).unwrap();
         assert!(matches!(&ev[0], Event::QueueChanged { index: Some(0), .. }));
 
         let (mut p, t0) = started();
-        p.apply(&Command::SetRepeat { mode: RepeatMode::One }, t0).unwrap();
+        p.apply(
+            &Command::SetRepeat {
+                mode: RepeatMode::One,
+            },
+            t0,
+        )
+        .unwrap();
         let ev = p.tick(secs(t0, 184));
-        assert!(matches!(ev.as_slice(), [Event::Progress { position_ms: 0, .. }]));
+        assert!(matches!(
+            ev.as_slice(),
+            [Event::Progress { position_ms: 0, .. }]
+        ));
         assert_eq!(p.index, Some(0));
     }
 
@@ -287,7 +340,13 @@ mod tests {
         let (mut p, t0) = started();
         p.apply(&Command::Next, t0).unwrap();
         let ev = p.apply(&Command::Next, t0).unwrap();
-        assert!(matches!(ev[0], Event::PlaybackState { state: PlayState::Ended, .. }));
+        assert!(matches!(
+            ev[0],
+            Event::PlaybackState {
+                state: PlayState::Ended,
+                ..
+            }
+        ));
         // prev from Ended at position == duration restarts? position > 3000 -> restart current
         p.apply(&Command::Prev, t0).unwrap();
         assert_eq!(p.index, Some(1));
@@ -296,7 +355,10 @@ mod tests {
         assert!(matches!(&ev[0], Event::QueueChanged { index: Some(0), .. }));
         // index 0 restarts
         let ev = p.apply(&Command::Prev, t0).unwrap();
-        assert!(matches!(ev.as_slice(), [Event::Progress { position_ms: 0, .. }]));
+        assert!(matches!(
+            ev.as_slice(),
+            [Event::Progress { position_ms: 0, .. }]
+        ));
     }
 
     #[test]
@@ -305,8 +367,14 @@ mod tests {
         let mut p = Player::new(t0);
         let e = p.apply(&Command::Play, t0).unwrap_err();
         assert_eq!(e.kind, ErrorKind::Unavailable);
-        assert_eq!(p.apply(&q(&["zz"], 0), t0).unwrap_err().kind, ErrorKind::NotFound);
-        assert_eq!(p.apply(&q(&["s1"], 1), t0).unwrap_err().kind, ErrorKind::Internal);
+        assert_eq!(
+            p.apply(&q(&["zz"], 0), t0).unwrap_err().kind,
+            ErrorKind::NotFound
+        );
+        assert_eq!(
+            p.apply(&q(&["s1"], 1), t0).unwrap_err().kind,
+            ErrorKind::Internal
+        );
         let ev = p.apply(&Command::SetVolume { volume: 1.7 }, t0).unwrap();
         assert_eq!(ev, vec![Event::Volume { volume: 1.0 }]);
     }
@@ -316,7 +384,10 @@ mod tests {
         let (mut p, t0) = started();
         p.apply(&Command::Next, t0).unwrap();
         let ev = p.apply(&Command::Prev, secs(t0, 5)).unwrap();
-        assert!(matches!(ev.as_slice(), [Event::Progress { position_ms: 0, .. }]));
+        assert!(matches!(
+            ev.as_slice(),
+            [Event::Progress { position_ms: 0, .. }]
+        ));
         assert_eq!(p.index, Some(1));
         p.tick(secs(t0, 5 + 205));
         assert_eq!(p.state, PlayState::Ended);

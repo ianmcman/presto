@@ -5,19 +5,42 @@ use serde_json::{Value, json};
 
 // (id, title, artist, album, duration_ms)
 const SONGS: &[(&str, &str, &str, &str, u64)] = &[
-    ("s1", "Neon Static", "Mock Artist One", "Neon Static", 183000),
-    ("s2", "Low Battery", "Mock Artist One", "Neon Static", 204000),
+    (
+        "s1",
+        "Neon Static",
+        "Mock Artist One",
+        "Neon Static",
+        183000,
+    ),
+    (
+        "s2",
+        "Low Battery",
+        "Mock Artist One",
+        "Neon Static",
+        204000,
+    ),
     ("s3", "Cache Miss", "Mock Artist One", "Neon Static", 241000),
     ("s4", "Hang Time", "The Placeholders", "Fault Lines", 167000),
     ("s5", "Slow Burn", "The Placeholders", "Fault Lines", 199000),
-    ("s6", "Crash Course", "The Placeholders", "Fault Lines", 222000),
+    (
+        "s6",
+        "Crash Course",
+        "The Placeholders",
+        "Fault Lines",
+        222000,
+    ),
 ];
 // (id, name, artist)
 const ARTISTS: &[(&str, &str)] = &[("a1", "Mock Artist One"), ("a2", "The Placeholders")];
 // (id, name, artist, song ids)
 const ALBUMS: &[(&str, &str, &str, &[&str])] = &[
     ("al1", "Neon Static", "Mock Artist One", &["s1", "s2", "s3"]),
-    ("al2", "Fault Lines", "The Placeholders", &["s4", "s5", "s6"]),
+    (
+        "al2",
+        "Fault Lines",
+        "The Placeholders",
+        &["s4", "s5", "s6"],
+    ),
 ];
 const PLAYLISTS: &[(&str, &str, &[&str])] = &[
     ("p1", "Mock Mix", &["s1", "s4", "s2"]),
@@ -62,26 +85,35 @@ fn all(ty: &str) -> Vec<(&'static str, Value)> {
         "artists" => ARTISTS
             .iter()
             .map(|a| {
-                (a.1, json!({"id": a.0, "type": "artists",
-                    "attributes": {"name": a.1, "artwork": artwork(a.0)}}))
+                (
+                    a.1,
+                    json!({"id": a.0, "type": "artists",
+                    "attributes": {"name": a.1, "artwork": artwork(a.0)}}),
+                )
             })
             .collect(),
         "albums" => ALBUMS
             .iter()
             .map(|a| {
-                (a.1, json!({"id": a.0, "type": "albums", "attributes": {
+                (
+                    a.1,
+                    json!({"id": a.0, "type": "albums", "attributes": {
                     "name": a.1, "artistName": a.2, "artwork": artwork(a.0),
                     "trackCount": a.3.len()},
-                    "relationships": {"tracks": {"data": tracks(a.3)}}}))
+                    "relationships": {"tracks": {"data": tracks(a.3)}}}),
+                )
             })
             .collect(),
         "playlists" => PLAYLISTS
             .iter()
             .map(|p| {
-                (p.1, json!({"id": p.0, "type": "playlists", "attributes": {
+                (
+                    p.1,
+                    json!({"id": p.0, "type": "playlists", "attributes": {
                     "name": p.1, "curatorName": "Presto Mock", "artwork": artwork(p.0),
                     "trackCount": p.2.len()},
-                    "relationships": {"tracks": {"data": tracks(p.2)}}}))
+                    "relationships": {"tracks": {"data": tracks(p.2)}}}),
+                )
             })
             .collect(),
         _ => vec![],
@@ -141,7 +173,10 @@ pub fn handle(req: &ApiRequest) -> Outcome {
             }
         }
         ["v1", "catalog", _, "search"] => {
-            let term = query.get("term").map(|t| t.to_lowercase()).unwrap_or_default();
+            let term = query
+                .get("term")
+                .map(|t| t.to_lowercase())
+                .unwrap_or_default();
             let hits = |ty: &str| -> Vec<Value> {
                 if term.is_empty() {
                     return vec![];
@@ -182,7 +217,9 @@ mod tests {
         let d = data(handle(&r));
         assert_eq!(d["data"].as_array().unwrap().len(), 2);
         assert_eq!(d["next"], "/v1/me/library/songs?offset=2");
-        let d = data(handle(&ApiRequest::get("/v1/me/library/songs?offset=4&limit=5")));
+        let d = data(handle(&ApiRequest::get(
+            "/v1/me/library/songs?offset=4&limit=5",
+        )));
         assert_eq!(d["data"].as_array().unwrap().len(), 2);
         assert!(d.get("next").is_none());
     }
@@ -200,17 +237,36 @@ mod tests {
     #[test]
     fn lookups_and_errors() {
         let d = data(handle(&ApiRequest::get("/v1/catalog/us/albums/al1")));
-        assert_eq!(d["data"][0]["relationships"]["tracks"]["data"].as_array().unwrap().len(), 3);
+        assert_eq!(
+            d["data"][0]["relationships"]["tracks"]["data"]
+                .as_array()
+                .unwrap()
+                .len(),
+            3
+        );
         assert!(matches!(
             handle(&ApiRequest::get("/v1/nope")),
-            Outcome::Err { error: IpcError { kind: ErrorKind::NotFound, .. } }
+            Outcome::Err {
+                error: IpcError {
+                    kind: ErrorKind::NotFound,
+                    ..
+                }
+            }
         ));
         let mut post = ApiRequest::get("/v1/me/library/songs");
         post.method = HttpMethod::Post;
         assert!(matches!(
             handle(&post),
-            Outcome::Err { error: IpcError { kind: ErrorKind::Unavailable, .. } }
+            Outcome::Err {
+                error: IpcError {
+                    kind: ErrorKind::Unavailable,
+                    ..
+                }
+            }
         ));
-        assert_eq!(song("s2").unwrap().artwork_url.unwrap(), "https://example.invalid/artwork/s2/600x600.jpg");
+        assert_eq!(
+            song("s2").unwrap().artwork_url.unwrap(),
+            "https://example.invalid/artwork/s2/600x600.jpg"
+        );
     }
 }
