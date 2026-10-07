@@ -38,12 +38,14 @@ created: 2026-10-07
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| TBD (planner fills) | | | IPC-01 | unit | `cargo test -p presto-ipc --test roundtrip` | ❌ W0 | ⬜ pending |
-| TBD | | | IPC-01 | snapshot | `cargo test -p presto-ipc --test schema snapshot` | ❌ W0 | ⬜ pending |
-| TBD | | | IPC-01 | unit | `cargo test -p presto-ipc --test doc_covers_variants` | ❌ W0 | ⬜ pending |
-| TBD | | | IPC-02 | unit | `cargo test -p presto-ipc --test schema no_token` | ❌ W0 | ⬜ pending |
-| TBD | | | IPC-03 | integration | `cargo test -p presto-engine-mock --test protocol` | ❌ W0 | ⬜ pending |
-| TBD | | | IPC-03 | integration | `cargo test -p presto-engine-mock --test faults` | ❌ W0 | ⬜ pending |
+| 01-01-T2 | 01-01 | 1 | IPC-01 | unit | `cargo test -p presto-ipc --test roundtrip` | ❌ W0 | ⬜ pending |
+| 01-01-T3 | 01-01 | 1 | IPC-01 | integration | `cargo test -p presto-ipc --test transport` | ❌ W0 | ⬜ pending |
+| 01-02-T1 | 01-02 | 2 | IPC-01 | snapshot | `cargo test -p presto-ipc --test schema snapshot` | ❌ W0 | ⬜ pending |
+| 01-02-T1 | 01-02 | 2 | IPC-02 | unit | `cargo test -p presto-ipc --test schema` (no_token, canary, lowercase) | ❌ W0 | ⬜ pending |
+| 01-02-T2 | 01-02 | 2 | IPC-01 | unit | `cargo test -p presto-ipc --test doc_covers_variants` | ❌ W0 | ⬜ pending |
+| 01-03-T1 | 01-03 | 2 | IPC-03 | unit | `cargo test -p presto-engine-mock --bins` | ❌ W0 | ⬜ pending |
+| 01-03-T2 | 01-03 | 2 | IPC-03 | integration | `cargo test -p presto-engine-mock --test protocol` | ❌ W0 | ⬜ pending |
+| 01-04-T2 | 01-04 | 3 | IPC-03 | integration | `cargo test -p presto-engine-mock --test faults` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 

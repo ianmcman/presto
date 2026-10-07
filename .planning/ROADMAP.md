@@ -25,7 +25,13 @@ Fix the engine-neutral IPC contract and a mock engine first, then run the engine
   2. A schema test fails if any IPC type gains a token-like field.
   3. The mock engine answers the full protocol over the chosen transport, and each fault (hang, crash, auth_expired, slow) can be triggered on demand.
   4. A short document records the spotifast Backend/Command/Event and API-client seams the UI depends on, and confirms the egui fork and fastframe crates are fetchable.
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 01-01-PLAN.md: Toolchain, workspace, presto-ipc wire types, timeouts, socket transport (wave 1)
+- [ ] 01-02-PLAN.md: Schema snapshot and token guard, PROTOCOL.md with coverage test, spotifast seam notes (wave 2)
+- [ ] 01-03-PLAN.md: Mock engine: catalog, playback clock, protocol loop and integration test (wave 2)
+- [ ] 01-04-PLAN.md: Mock fault injection (hang, crash, auth_expired, slow) by flag and live frame (wave 3)
 
 ### Phase 2: Engine Feasibility Spike (GATE)
 **Goal**: Decide go/no-go on the hidden-Chromium approach and pick the engine, with measured evidence. Work stops here for user approval before Phases 3 to 7 are planned in detail.
@@ -99,7 +105,7 @@ Fix the engine-neutral IPC contract and a mock engine first, then run the engine
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. IPC Contract and Mock Engine | 0/TBD | Not started | - |
+| 1. IPC Contract and Mock Engine | 0/4 | Not started | - |
 | 2. Engine Feasibility Spike (GATE) | 0/TBD | Not started | - |
 | 3. Core Backend, Supervisor, Auth | 0/TBD | Not started | - |
 | 4. Data Layer and Cache | 0/TBD | Not started | - |
