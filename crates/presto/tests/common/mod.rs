@@ -40,3 +40,44 @@ pub fn ready(b: &Backend) -> CoreState {
     use presto_core::EngineStatus;
     wait_state(b, Duration::from_secs(10), |s| s.engine == EngineStatus::Ready)
 }
+
+use presto::app::App;
+use presto::ui::widgets;
+
+pub fn demo_app(extra: &[&str]) -> (App, egui::Context, TempDir) {
+    let (backend, tmp) = demo_backend(extra);
+    let ctx = egui::Context::default();
+    let app = App::new(backend, true, &ctx);
+    (app, ctx, tmp)
+}
+
+pub fn frame(app: &mut App, ctx: &egui::Context, events: Vec<egui::Event>) -> Vec<String> {
+    let raw = egui::RawInput {
+        events,
+        screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1200.0, 800.0))),
+        ..Default::default()
+    };
+    let mut out = ctx.run_ui(raw, |ui| {
+        app.logic(&ui.ctx().clone());
+        app.frame_ui(ui);
+    });
+    out.textures_delta.clear();
+    widgets::texts(&out)
+}
+
+/// Runs frames every 50 ms until `pred` holds; panics after `within`.
+pub fn frames_until(app: &mut App, ctx: &egui::Context, within: Duration, pred: impl Fn(&App, &[String]) -> bool) -> Vec<String> {
+    let end = Instant::now() + within;
+    loop {
+        let t = frame(app, ctx, vec![]);
+        if pred(app, &t) {
+            return t;
+        }
+        assert!(Instant::now() < end, "timed out; last texts: {t:?}");
+        std::thread::sleep(Duration::from_millis(50));
+    }
+}
+
+pub fn has(t: &[String], s: &str) -> bool {
+    t.iter().any(|x| x == s)
+}
