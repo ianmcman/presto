@@ -15,11 +15,11 @@
 ### Engine Spike
 
 - [ ] **SPIKE-01**: Spike confirms music.apple.com exposes a usable MusicKit instance, or documents the alternative
-- [x] **SPIKE-02**: Sign-in through Apple's login page works in the engine and persists across engine restarts
+- [ ] **SPIKE-02**: Sign-in through Apple's login page works in the engine and persists across engine restarts
 - [ ] **SPIKE-03**: A command from a Rust process plays a full catalog track past 60 s and across a seek on a subscriber account
 - [ ] **SPIKE-04**: A library API call (`/v1/me/library/playlists`) proxied through the page returns JSON to Rust
 - [ ] **SPIKE-05**: Playback state events stream to Rust
-- [x] **SPIKE-06**: Spike measures idle and playing RSS, hidden-window behavior on Wayland and X11, stream codec, queue API surface, MPRIS duplication, and compares engine candidates with a recommendation
+- [ ] **SPIKE-06**: Spike measures idle and playing RSS, hidden-window behavior on Wayland and X11, stream codec, queue API surface, MPRIS duplication, and compares engine candidates with a recommendation
 
 ### Core and Auth
 
@@ -102,11 +102,11 @@
 | PKG-01 | Phase 7 | Pending |
 | PKG-02 | Phase 7 | Pending |
 | SPIKE-01 | Phase 2 | Pending |
-| SPIKE-02 | Phase 2 | Complete |
+| SPIKE-02 | Phase 2 | Pending |
 | SPIKE-03 | Phase 2 | Pending |
 | SPIKE-04 | Phase 2 | Pending |
 | SPIKE-05 | Phase 2 | Pending |
-| SPIKE-06 | Phase 2 | Complete |
+| SPIKE-06 | Phase 2 | Pending |
 | DATA-01 | Phase 4 | Pending |
 | DATA-02 | Phase 4 | Pending |
 | DATA-03 | Phase 4 | Pending |
