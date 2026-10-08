@@ -6,3 +6,402 @@ pub mod models;
 pub mod search;
 pub mod store;
 pub mod view;
+
+use std::collections::HashMap;
+use std::io;
+use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+
+use serde_json::Value;
+use tokio::sync::watch;
+
+use crate::CoreHandle;
+use crate::paths::Paths;
+use artwork::{ART_CAP, ArtCache};
+use client::ApiClient;
+use error::UiErrorKind;
+use models::{Item, Rows, Shelf};
+use store::{Store, now_ms, req_key};
+use view::{ListState, Phase, TTL, UiError, ViewKey, is_stale, next_retry};
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Op {
+    First,
+    More,
+}
+
+struct Slot<T> {
+    tx: watch::Sender<ListState<T>>,
+    gn: u64,
+    pages: u32,
+    fetched_at_ms: Option<i64>,
+    cached_body0: Option<Vec<u8>>,
+    last_op: Op,
+}
+
+type Slots<T> = Mutex<HashMap<ViewKey, Slot<T>>>;
+
+trait Slotted: Rows {
+    fn slots(i: &Inner) -> &Slots<Self>;
+}
+impl Slotted for Item {
+    fn slots(i: &Inner) -> &Slots<Self> {
+        &i.items
+    }
+}
+impl Slotted for Shelf {
+    fn slots(i: &Inner) -> &Slots<Self> {
+        &i.shelves
+    }
+}
+
+struct Inner {
+    rt: tokio::runtime::Handle,
+    client: ApiClient,
+    store: Store,
+    art: Arc<ArtCache>,
+    items: Slots<Item>,
+    shelves: Slots<Shelf>,
+    /// Read by the D-04 refresh watcher (04-09).
+    #[allow(dead_code)]
+    focused: Mutex<Option<ViewKey>>,
+    invalidated_at_ms: AtomicI64,
+}
+
+#[derive(Clone)]
+pub struct DataHandle {
+    inner: Arc<Inner>,
+}
+
+fn upd<T: Slotted, R>(i: &Inner, key: &ViewKey, f: impl FnOnce(&mut Slot<T>) -> R) -> Option<R> {
+    T::slots(i).lock().unwrap().get_mut(key).map(f)
+}
+
+async fn blk<R: Send + 'static>(f: impl FnOnce() -> R + Send + 'static) -> Option<R> {
+    tokio::task::spawn_blocking(f).await.ok()
+}
+
+fn sys(ms: i64) -> SystemTime {
+    UNIX_EPOCH + Duration::from_millis(ms.max(0) as u64)
+}
+
+/// Mark a fetch as started: loading phase for the op, countdown cleared.
+fn begin<T: Slotted>(i: &Inner, key: &ViewKey, gn: u64, op: Op) -> bool {
+    upd::<T, _>(i, key, |sl| {
+        if sl.gn != gn {
+            return false;
+        }
+        sl.last_op = op;
+        sl.tx.send_modify(|s| {
+            s.phase = match (s.items.is_empty(), op) {
+                (true, _) => Phase::Loading,
+                (_, Op::More) => Phase::LoadingMore,
+                _ => Phase::Revalidating,
+            };
+            if let Some(e) = &mut s.error {
+                e.retry_at = None;
+            }
+        });
+        true
+    })
+    .unwrap_or(false)
+}
+
+fn run<T: Slotted>(i: Arc<Inner>, key: ViewKey, gn: u64, op: Op, attempts: u8) -> std::pin::Pin<Box<dyn Future<Output = ()> + Send>> {
+    Box::pin(async move {
+        match op {
+            Op::First => fetch0::<T>(i, key, gn, attempts).await,
+            Op::More => more::<T>(i, key, gn, attempts).await,
+        }
+    })
+}
+
+fn fail<T: Slotted>(i: &Arc<Inner>, key: &ViewKey, gn: u64, op: Op, kind: UiErrorKind, attempts: u8) {
+    let retry_at = next_retry(&kind, attempts, Instant::now());
+    let live = upd::<T, _>(i, key, |sl| {
+        if sl.gn != gn {
+            return false;
+        }
+        sl.last_op = op;
+        sl.tx.send_modify(|s| {
+            s.error = Some(UiError { kind, attempts, retry_at });
+            s.phase = Phase::Idle;
+        });
+        true
+    })
+    .unwrap_or(false);
+    if let (true, Some(at)) = (live, retry_at) {
+        let (i, key) = (i.clone(), key.clone());
+        i.rt.clone().spawn(async move {
+            tokio::time::sleep_until(at.into()).await;
+            if begin::<T>(&i, &key, gn, op) {
+                run::<T>(i, key, gn, op, attempts + 1).await;
+            }
+        });
+    }
+}
+
+async fn first<T: Slotted>(i: Arc<Inner>, key: ViewKey, gn: u64) {
+    if let Some(acct) = i.client.account_key() {
+        let (st, rk) = (i.store.clone(), req_key(&key.request(0)));
+        let hit = blk(move || st.get_page(&acct, &rk, 0)).await.flatten();
+        if let Some((c, v)) = hit.and_then(|c| serde_json::from_slice::<Value>(&c.body).ok().map(|v| (c, v))) {
+            let p = T::parse_page(&v);
+            let stale = is_stale(key.clone(), c.fetched_at_ms, now_ms(), false, i.invalidated_at_ms.load(Ordering::Relaxed));
+            let live = upd::<T, _>(&i, &key, |sl| {
+                if sl.gn != gn {
+                    return false;
+                }
+                sl.pages = 1;
+                sl.fetched_at_ms = Some(c.fetched_at_ms);
+                sl.cached_body0 = Some(c.body);
+                sl.tx.send_modify(|s| {
+                    s.has_more = p.next.is_some();
+                    s.total = p.total;
+                    s.items = p.items;
+                    s.from_cache = true;
+                    s.fetched_at = Some(sys(c.fetched_at_ms));
+                    s.phase = if stale { Phase::Revalidating } else { Phase::Idle };
+                });
+                true
+            })
+            .unwrap_or(false);
+            if !live || !stale {
+                return;
+            }
+        }
+    }
+    fetch0::<T>(i, key, gn, 0).await
+}
+
+async fn fetch0<T: Slotted>(i: Arc<Inner>, key: ViewKey, gn: u64, attempts: u8) {
+    let acct = match i.client.account_key() {
+        Some(a) => a,
+        None => match i.client.storefront().await {
+            Ok(sf) => {
+                i.store.set_meta("storefront", &sf);
+                match i.client.account_key() {
+                    Some(a) => a,
+                    None => return fail::<T>(&i, &key, gn, Op::First, UiErrorKind::Internal, attempts),
+                }
+            }
+            Err(k) => return fail::<T>(&i, &key, gn, Op::First, k, attempts),
+        },
+    };
+    let req = key.request(0);
+    let rk = req_key(&req);
+    let v = match i.client.get(req).await {
+        Ok(v) => v,
+        Err(k) => return fail::<T>(&i, &key, gn, Op::First, k, attempts),
+    };
+    let Some(prev) = upd::<T, _>(&i, &key, |sl| (sl.gn == gn).then(|| sl.cached_body0.clone())).flatten() else {
+        return;
+    };
+    let body = serde_json::to_vec(&v).unwrap_or_default();
+    let changed = prev.as_ref().is_some_and(|p| *p != body);
+    let (st, b, size, now) = (i.store.clone(), body.clone(), key.page_size(), now_ms());
+    blk(move || {
+        st.put_page(&acct, &rk, 0, now, &b);
+        if changed {
+            // offsets may have shifted; never splice old pages onto new ones
+            st.drop_pages_from(&acct, &rk, size);
+        }
+    })
+    .await;
+    let p = T::parse_page(&v);
+    upd::<T, _>(&i, &key, |sl| {
+        if sl.gn != gn {
+            return;
+        }
+        sl.pages = 1;
+        sl.fetched_at_ms = Some(now);
+        sl.cached_body0 = Some(body);
+        sl.tx.send_modify(|s| {
+            s.has_more = p.next.is_some();
+            s.total = p.total;
+            s.items = p.items;
+            s.from_cache = false;
+            s.fetched_at = Some(sys(now));
+            if changed {
+                s.updated_at = Some(Instant::now());
+            }
+            s.error = None;
+            s.phase = Phase::Idle;
+        });
+    });
+}
+
+async fn more<T: Slotted>(i: Arc<Inner>, key: ViewKey, gn: u64, attempts: u8) {
+    let Some(off) = upd::<T, _>(&i, &key, |sl| (sl.gn == gn).then(|| sl.pages * key.page_size())).flatten() else {
+        return;
+    };
+    let req = key.request(off);
+    let rk = req_key(&req);
+    let acct = i.client.account_key();
+    let cached = match &acct {
+        Some(a) => {
+            let (st, a, rk) = (i.store.clone(), a.clone(), rk.clone());
+            blk(move || st.get_page(&a, &rk, off)).await.flatten()
+        }
+        None => None,
+    };
+    let ttl = TTL.as_millis() as i64;
+    let hit = cached
+        .filter(|c| i.client.gate().is_err() || now_ms() - c.fetched_at_ms < ttl)
+        .and_then(|c| serde_json::from_slice::<Value>(&c.body).ok());
+    let v = match hit {
+        Some(v) => v,
+        None => match i.client.get(req).await {
+            Ok(v) => {
+                if let Some(a) = acct {
+                    let (st, b) = (i.store.clone(), serde_json::to_vec(&v).unwrap_or_default());
+                    blk(move || st.put_page(&a, &rk, off, now_ms(), &b)).await;
+                }
+                v
+            }
+            Err(k) => return fail::<T>(&i, &key, gn, Op::More, k, attempts),
+        },
+    };
+    let p = T::parse_page(&v);
+    upd::<T, _>(&i, &key, |sl| {
+        if sl.gn != gn {
+            return;
+        }
+        sl.pages += 1;
+        sl.tx.send_modify(|s| {
+            s.items.extend(p.items);
+            s.has_more = p.next.is_some();
+            s.total = p.total.or(s.total);
+            s.error = None;
+            s.phase = Phase::Idle;
+        });
+    });
+}
+
+fn open<T: Slotted>(i: &Arc<Inner>, key: ViewKey) -> watch::Receiver<ListState<T>> {
+    *i.focused.lock().unwrap() = Some(key.clone());
+    let mut m = T::slots(i).lock().unwrap();
+    if let Some(sl) = m.get_mut(&key) {
+        let rx = sl.tx.subscribe();
+        let inv = i.invalidated_at_ms.load(Ordering::Relaxed);
+        let stale = sl.fetched_at_ms.is_none_or(|f| is_stale(key.clone(), f, now_ms(), false, inv));
+        let (idle, counting) = {
+            let s = sl.tx.borrow();
+            (s.phase == Phase::Idle, s.error.as_ref().is_some_and(|e| e.retry_at.is_some()))
+        };
+        if stale && idle && !counting {
+            let gn = sl.gn;
+            sl.last_op = Op::First;
+            sl.tx.send_modify(|s| s.phase = if s.items.is_empty() { Phase::Loading } else { Phase::Revalidating });
+            i.rt.spawn(fetch0::<T>(i.clone(), key, gn, 0));
+        }
+        return rx;
+    }
+    let (tx, rx) = watch::channel(ListState { phase: Phase::Loading, ..Default::default() });
+    m.insert(key.clone(), Slot { tx, gn: 0, pages: 0, fetched_at_ms: None, cached_body0: None, last_op: Op::First });
+    i.rt.spawn(first::<T>(i.clone(), key, 0));
+    rx
+}
+
+fn restart<T: Slotted>(i: &Arc<Inner>, key: &ViewKey, op: Op) {
+    let Some(gn) = upd::<T, _>(i, key, |sl| {
+        sl.gn += 1;
+        sl.gn
+    }) else {
+        return;
+    };
+    if begin::<T>(i, key, gn, op) {
+        i.rt.spawn(run::<T>(i.clone(), key.clone(), gn, op, 0));
+    }
+}
+
+fn load_more_t<T: Slotted>(i: &Arc<Inner>, key: &ViewKey) {
+    let go = upd::<T, _>(i, key, |sl| {
+        let s = sl.tx.borrow();
+        // after a failed page the user (or the countdown) owns the next attempt
+        let blocked = s.error.is_some() && sl.last_op == Op::More;
+        (s.phase == Phase::Idle && s.has_more && !blocked).then_some(sl.gn)
+    })
+    .flatten();
+    if let Some(gn) = go {
+        if begin::<T>(i, key, gn, Op::More) {
+            i.rt.spawn(more::<T>(i.clone(), key.clone(), gn, 0));
+        }
+    }
+}
+
+impl DataHandle {
+    /// Call inside a tokio runtime: background work is spawned on it.
+    pub fn new(core: CoreHandle, paths: &Paths) -> io::Result<DataHandle> {
+        paths.prepare()?;
+        let store = Store::open(&paths.db).map_err(io::Error::other)?;
+        let art = ArtCache::open(paths.artwork.clone(), ART_CAP)?;
+        let client = ApiClient::new(core, paths.install_id()?);
+        // an offline start can still compute the account key
+        client.set_storefront(store.get_meta("storefront"));
+        Ok(DataHandle {
+            inner: Arc::new(Inner {
+                rt: tokio::runtime::Handle::current(),
+                client,
+                store,
+                art,
+                items: Default::default(),
+                shelves: Default::default(),
+                focused: Default::default(),
+                invalidated_at_ms: AtomicI64::new(0),
+            }),
+        })
+    }
+
+    /// Library, RecentlyPlayed, Shelf. Use `shelves()` for Recommendations.
+    pub fn list(&self, key: ViewKey) -> watch::Receiver<ListState<Item>> {
+        debug_assert!(key != ViewKey::Recommendations);
+        open::<Item>(&self.inner, key)
+    }
+
+    pub fn shelves(&self) -> watch::Receiver<ListState<Shelf>> {
+        open::<Shelf>(&self.inner, ViewKey::Recommendations)
+    }
+
+    pub fn load_more(&self, key: &ViewKey) {
+        if *key == ViewKey::Recommendations {
+            load_more_t::<Shelf>(&self.inner, key)
+        } else {
+            load_more_t::<Item>(&self.inner, key)
+        }
+    }
+
+    /// D-03: bypasses the TTL.
+    pub fn refresh(&self, key: &ViewKey) {
+        if *key == ViewKey::Recommendations {
+            restart::<Shelf>(&self.inner, key, Op::First)
+        } else {
+            restart::<Item>(&self.inner, key, Op::First)
+        }
+    }
+
+    /// Manual Retry: repeats the failed operation with the attempt count reset.
+    pub fn retry(&self, key: &ViewKey) {
+        let rec = *key == ViewKey::Recommendations;
+        let op = if rec { upd::<Shelf, _>(&self.inner, key, |s| s.last_op) } else { upd::<Item, _>(&self.inner, key, |s| s.last_op) };
+        let Some(op) = op else { return };
+        if rec {
+            restart::<Shelf>(&self.inner, key, op)
+        } else {
+            restart::<Item>(&self.inner, key, op)
+        }
+    }
+
+    pub fn client(&self) -> &ApiClient {
+        &self.inner.client
+    }
+
+    pub fn store(&self) -> &Store {
+        &self.inner.store
+    }
+
+    pub fn art(&self) -> &Arc<ArtCache> {
+        &self.inner.art
+    }
+}
