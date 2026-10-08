@@ -115,7 +115,20 @@ Plans:
   3. User can open album, artist and playlist pages and start playback from them.
   4. An unavailable track shows a clear state instead of failing silently.
   5. `presto --demo` launches and every view works with no account and no Widevine.
-**Plans**: TBD
+**Plans**: 11 plans
+
+Plans:
+- [ ] 05-01-PLAN.md: presto crate, egui fork pins, fastframe theme/icons/i18n, CLI (wave 1)
+- [ ] 05-02-PLAN.md: Mock catalog for every view, unavailable and failing tracks (wave 1)
+- [ ] 05-03-PLAN.md: Core detail data, track lists, playable flag, engine errors in CoreState (wave 2)
+- [ ] 05-04-PLAN.md: Pure playback, seek, volume, skip guard and queue-edit logic (wave 2)
+- [ ] 05-05-PLAN.md: Shared widgets and toasts (wave 2)
+- [ ] 05-06-PLAN.md: Backend over presto-core, demo/real launch, UI contract types (wave 3)
+- [ ] 05-07-PLAN.md: App shell, sidebar, status panels, shortcuts, main (wave 4)
+- [ ] 05-08-PLAN.md: Player bar and queue panel (wave 5)
+- [ ] 05-09-PLAN.md: Home, Library, Search, Settings (wave 5)
+- [ ] 05-10-PLAN.md: Album, playlist and artist pages (wave 5)
+- [ ] 05-11-PLAN.md: Suite, manual demo pass, live API checks (wave 6, checkpoint)
 
 ### Phase 6: Desktop Integration
 **Goal**: Presto behaves like a Linux desktop media player. (Outline.)
@@ -145,6 +158,6 @@ Plans:
 | 2. Engine Feasibility Spike (GATE) | 6/6 | Complete   | 2026-10-08 |
 | 3. Core Backend, Supervisor, Auth | 15/15 | Complete | 2026-10-08 |
 | 4. Data Layer and Cache | 0/9 | Planned | - |
-| 5. Playback UI and Demo Mode | 0/TBD | Not started | - |
+| 5. Playback UI and Demo Mode | 0/11 | Planned | - |
 | 6. Desktop Integration | 0/TBD | Not started | - |
 | 7. Packaging and Distribution Notes | 0/TBD | Not started | - |
