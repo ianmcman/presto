@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-13-PLAN.md
-last_updated: "2026-10-08T12:06:08.245Z"
+stopped_at: Completed 03-14-PLAN.md
+last_updated: "2026-10-08T12:09:00.971Z"
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 25
-  completed_plans: 23
+  completed_plans: 24
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-10-07)
 ## Current Position
 
 Phase: 03 (core-backend-supervisor-auth) — EXECUTING
-Plan: 2 of 15
+Plan: 3 of 15
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ None yet.
 - [Phase 03]: Restore verify waits out Loading, fixes seek and state separately, holds 2s before Ready
 - [Phase 03]: Load restore runs muted; snapshot volume restored on every restore exit
 - [Phase 03]: Live restore Seek timeout is small-target class (targets under ~3 s never answered); mock --seek-hang reproduces
+- [Phase 03]: Only a failed SetQueue ends a restore; must-pause restores send Pause first and stay muted while Playing or Loading
 
 ### Pending Todos
 
@@ -59,6 +60,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-08T12:06:08.243Z
-Stopped at: Completed 03-13-PLAN.md
+Last session: 2026-10-08T12:09:00.969Z
+Stopped at: Completed 03-14-PLAN.md
 Resume file: None
