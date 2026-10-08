@@ -50,7 +50,7 @@ Plans:
 - [x] 02-02-PLAN.md: presto-spike Rust driver (checklist, signin, measure) proven against the mock (wave 1)
 - [x] 02-03-PLAN.md: Engine main.js, preload.js, bridge.js with stub-MusicKit tests (wave 2)
 - [x] 02-04-PLAN.md: Live run: smoke, hand sign-in, hidden restart checklist on Wayland (wave 3)
-- [ ] 02-05-PLAN.md: Measurements: hidden-window and MPRIS matrix, RSS, codec, queue surface, listening check (wave 4)
+- [x] 02-05-PLAN.md: Measurements: hidden-window and MPRIS matrix, RSS, codec, queue surface, listening check (wave 4)
 - [ ] 02-06-PLAN.md: SPIKE-REPORT.md, D-15 fallback check, go/no-go approval (wave 5)
 
 ### Phase 3: Core Backend, Supervisor, Auth
