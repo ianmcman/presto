@@ -41,6 +41,12 @@ struct Args {
     /// Test only: the first Seek after each SetQueue gets no reply and has no effect (03-12 live C3).
     #[arg(long)]
     seek_hang: bool,
+    /// Storefront served by /v1/me/storefront; catalog paths with another storefront get not_found.
+    #[arg(long, default_value = "us")]
+    storefront: String,
+    /// Test only: serve N generated library songs (D-09).
+    #[arg(long, default_value_t = 0)]
+    library_songs: usize,
 }
 
 struct Engine {
@@ -48,6 +54,7 @@ struct Engine {
     faults: Faults,
     seek_hang: bool,
     seek_unanswered: bool,
+    catalog: catalog::Catalog,
 }
 
 fn evts(events: Vec<Event>) -> Vec<Frame> {
@@ -147,7 +154,7 @@ impl Engine {
             },
             Frame::Req { id, req } => vec![Frame::Res {
                 id,
-                outcome: catalog::handle(&req),
+                outcome: catalog::handle(&req, &self.catalog),
             }],
             other => {
                 eprintln!("mock: ignoring unexpected frame {other:?}");
@@ -224,6 +231,10 @@ async fn main() {
         faults: Faults::default(),
         seek_hang: args.seek_hang,
         seek_unanswered: false,
+        catalog: catalog::Catalog {
+            storefront: args.storefront.clone(),
+            library_songs: args.library_songs,
+        },
     };
     engine.player.restore_quirks = args.restore_quirks;
     let signed_out = args.auth == "signed_out";

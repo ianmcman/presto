@@ -143,7 +143,7 @@ Presto sends `ping` every 2 s; the engine answers `pong` with the same `seq`. Th
 
 The mock engine accepts a `mock` frame with `fault`, tagged by `kind`: `none`, `hang`, `crash` (`after_ms`), `auth_expired`, `slow` (`delay_ms`), `rate_limited` (`retry_after_ms`), `signed_out`.
 
-CLI: `--fault`, repeatable, syntax `none|hang|crash|crash@<ms>|auth_expired|slow|slow=<ms>|rate_limited|rate_limited=<ms>|signed_out`. `slow` defaults to 3000 ms. Startup faults take effect right after the handshake. `--auth signed_in|signed_out` sets the initial auth state (signed_out rejects `cmd` and `req` with `auth_expired`, except `show_window`). `--bridge-missing` suppresses `bridge_ready` and the initial `auth`. `--bridge-caps <csv>` sets the `bridge_ready` capabilities (default `playback,queue,api`).
+CLI: `--fault`, repeatable, syntax `none|hang|crash|crash@<ms>|auth_expired|slow|slow=<ms>|rate_limited|rate_limited=<ms>|signed_out`. `slow` defaults to 3000 ms. Startup faults take effect right after the handshake. `--auth signed_in|signed_out` sets the initial auth state (signed_out rejects `cmd` and `req` with `auth_expired`, except `show_window`). `--bridge-missing` suppresses `bridge_ready` and the initial `auth`. `--bridge-caps <csv>` sets the `bridge_ready` capabilities (default `playback,queue,api`). `--storefront <id>` (default `us`) sets the storefront; catalog paths with another storefront get `not_found`. `--library-songs <n>` serves n generated library songs.
 
 - `hang`: drops every outbound frame (replies, events, pongs) while still reading. The socket stays open. Only a `mock` `none` frame clears it.
 - `crash`: exits with status 101, immediately or after `after_ms`.
