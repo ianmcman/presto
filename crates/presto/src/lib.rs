@@ -5,6 +5,7 @@ pub mod backend;
 pub mod cli;
 pub mod control;
 pub mod ctl;
+pub mod desktop;
 pub mod launch;
 pub mod model;
 pub mod i18n;
