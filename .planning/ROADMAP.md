@@ -125,7 +125,7 @@ Plans:
 - [x] 05-05-PLAN.md: Shared widgets and toasts (wave 2)
 - [x] 05-06-PLAN.md: Backend over presto-core, demo/real launch, UI contract types (wave 3)
 - [x] 05-07-PLAN.md: App shell, sidebar, status panels, shortcuts, main (wave 4)
-- [ ] 05-08-PLAN.md: Player bar and queue panel (wave 5)
+- [x] 05-08-PLAN.md: Player bar and queue panel (wave 5)
 - [ ] 05-09-PLAN.md: Home, Library, Search, Settings (wave 5)
 - [ ] 05-10-PLAN.md: Album, playlist and artist pages (wave 5)
 - [ ] 05-11-PLAN.md: Suite, manual demo pass, live API checks (wave 6, checkpoint)
