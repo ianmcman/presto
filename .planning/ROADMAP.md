@@ -83,7 +83,7 @@ Plans:
 - [x] 03-15-PLAN.md: Gap: live re-run of C1, C2, C3 at track start, D (wave 3)
 
 ### Phase 4: Data Layer and Cache
-**Goal**: Library and catalog data flows from the engine into Presto models and is cached for fast, offline-ish browsing. (Outline.)
+**Goal**: Library and catalog data flows from the engine into Presto models and is cached for fast, offline-ish browsing.
 **Depends on**: Phase 3
 **Requirements**: DATA-01, DATA-02, DATA-03, DATA-04, DATA-05, DATA-06
 **Success Criteria** (what must be TRUE):
@@ -92,7 +92,18 @@ Plans:
   3. User sees recently played and a recommendations home.
   4. A rate limit or proxy error shows a visible UI state instead of a blank view.
   5. With the engine offline, previously viewed library pages and artwork still display.
-**Plans**: TBD
+**Plans**: 9 plans
+
+Plans:
+- [ ] 04-01-PLAN.md: Mock rate_limited and signed_out faults, Home/search routes, storefront check, 10k library flag (wave 1)
+- [ ] 04-02-PLAN.md: Live probe for server-side sort, limits and shapes; user confirms (wave 1)
+- [ ] 04-03-PLAN.md: Deps, cache paths and install id, data module tree, UiErrorKind, SQLite store (wave 1)
+- [ ] 04-04-PLAN.md: ApiClient: storefront, fail-fast gating, error mapping (wave 2)
+- [ ] 04-05-PLAN.md: Artwork disk cache with 500 MB LRU (wave 2)
+- [ ] 04-06-PLAN.md: Models, view keys, sort support, list state, TTL and retry policy (wave 2)
+- [ ] 04-07-PLAN.md: DataHandle: cache-then-revalidate, lazy paging, Home, error states (wave 3)
+- [ ] 04-08-PLAN.md: Debounced search with hints, scope and history (wave 3)
+- [ ] 04-09-PLAN.md: Lifecycle: offline cache, D-04 revalidation, sign-out wipe, Clear cache (wave 4)
 
 ### Phase 5: Playback UI and Demo Mode
 **Goal**: The ported egui UI lets the user browse and play, and runs against the mock engine with no account. (Outline; largest phase, may split by view group.)
@@ -133,7 +144,7 @@ Plans:
 | 1. IPC Contract and Mock Engine | 0/4 | Not started | - |
 | 2. Engine Feasibility Spike (GATE) | 6/6 | Complete   | 2026-10-08 |
 | 3. Core Backend, Supervisor, Auth | 15/15 | Complete | 2026-10-08 |
-| 4. Data Layer and Cache | 0/TBD | Not started | - |
+| 4. Data Layer and Cache | 0/9 | Planned | - |
 | 5. Playback UI and Demo Mode | 0/TBD | Not started | - |
 | 6. Desktop Integration | 0/TBD | Not started | - |
 | 7. Packaging and Distribution Notes | 0/TBD | Not started | - |
