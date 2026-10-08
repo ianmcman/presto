@@ -151,7 +151,10 @@ async fn slow_flag() {
     expect(&mut h, T, is_pong(1)).await;
     assert!(t0.elapsed() < Duration::from_millis(600), "pong late");
     expect(&mut h, T, is_res(1)).await;
-    assert!(t0.elapsed() >= Duration::from_millis(1500), "res not delayed");
+    assert!(
+        t0.elapsed() >= Duration::from_millis(1500),
+        "res not delayed"
+    );
 }
 
 #[tokio::test]
@@ -176,4 +179,69 @@ async fn bad_fault_flag() {
         .await
         .unwrap();
     assert!(!st.success());
+}
+
+#[tokio::test]
+async fn signed_out_start() {
+    let mut h = start(&["--auth", "signed_out"]).await;
+    expect(&mut h, T, is_auth(AuthState::SignedOut)).await;
+    send(
+        &mut h,
+        Frame::Cmd {
+            id: 1,
+            cmd: Command::Play,
+        },
+    )
+    .await;
+    assert_eq!(
+        err_kind(expect(&mut h, T, is_res(1)).await),
+        ErrorKind::AuthExpired
+    );
+    send(
+        &mut h,
+        Frame::Cmd {
+            id: 2,
+            cmd: Command::ShowWindow { show: true },
+        },
+    )
+    .await;
+    assert!(is_ok(&expect(&mut h, T, is_res(2)).await));
+    mock(&mut h, 3, FaultSpec::None).await;
+    expect(&mut h, T, is_auth(AuthState::SignedIn)).await;
+    expect(&mut h, T, is_res(3)).await;
+    let q = Command::SetQueue {
+        ids: vec!["s1".into()],
+        start: 0,
+        play: true,
+    };
+    send(&mut h, Frame::Cmd { id: 4, cmd: q }).await;
+    assert!(is_ok(&expect(&mut h, T, is_res(4)).await));
+    send(
+        &mut h,
+        Frame::Cmd {
+            id: 5,
+            cmd: Command::Play,
+        },
+    )
+    .await;
+    assert!(is_ok(&expect(&mut h, T, is_res(5)).await));
+}
+
+#[tokio::test]
+async fn bridge_missing_is_silent_but_answers_ping() {
+    let mut h = start(&["--bridge-missing"]).await;
+    let r = tokio::time::timeout(Duration::from_secs(1), transport::recv(&mut h.conn)).await;
+    assert!(r.is_err(), "expected silence, got {r:?}");
+    send(&mut h, Frame::Ping { seq: 1 }).await;
+    expect(&mut h, T, is_pong(1)).await;
+}
+
+#[tokio::test]
+async fn bridge_caps_flag() {
+    let mut h = start(&["--bridge-caps", "playback,queue"]).await;
+    let f = expect(&mut h, T, |f| matches!(f, Frame::Evt { .. })).await;
+    assert!(matches!(
+        f,
+        Frame::Evt { evt: Event::BridgeReady { capabilities, .. } } if capabilities == ["playback", "queue"]
+    ));
 }

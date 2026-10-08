@@ -11,6 +11,7 @@ fn set_queue(ids: &[&str]) -> Command {
     Command::SetQueue {
         ids: ids.iter().map(|s| s.to_string()).collect(),
         start: 0,
+        play: true,
     }
 }
 fn is_res(id: u64) -> impl Fn(&Frame) -> bool {
@@ -206,4 +207,63 @@ async fn exits_zero_on_eof() {
         .unwrap()
         .unwrap();
     assert_eq!(st.code(), Some(0));
+}
+
+#[tokio::test]
+async fn bridge_ready_then_auth_and_show_window() {
+    let mut h = start(&[]).await;
+    assert!(h.engine_hello.has(caps::WINDOW));
+    let f = expect(&mut h, T, |f| matches!(f, Frame::Evt { .. })).await;
+    assert!(matches!(
+        f,
+        Frame::Evt { evt: Event::BridgeReady { capabilities, .. } } if capabilities == ["playback", "queue", "api"]
+    ));
+    let f = expect(&mut h, T, |f| matches!(f, Frame::Evt { .. })).await;
+    assert!(matches!(
+        f,
+        Frame::Evt {
+            evt: Event::Auth {
+                state: AuthState::SignedIn
+            }
+        }
+    ));
+    send(&mut h, cmd(1, Command::ShowWindow { show: true })).await;
+    res_data(expect(&mut h, T, is_res(1)).await);
+}
+
+#[tokio::test]
+async fn set_queue_play_false_stays_paused() {
+    let mut h = start(&[]).await;
+    let q = Command::SetQueue {
+        ids: vec!["s1".into(), "s2".into()],
+        start: 0,
+        play: false,
+    };
+    send(&mut h, cmd(1, q)).await;
+    expect(&mut h, T, |f| {
+        matches!(
+            f,
+            Frame::Evt {
+                evt: Event::PlaybackState {
+                    state: PlayState::Paused,
+                    ..
+                }
+            }
+        )
+    })
+    .await;
+    expect(&mut h, T, is_res(1)).await;
+    send(&mut h, cmd(2, Command::Play)).await;
+    expect(&mut h, T, |f| {
+        matches!(
+            f,
+            Frame::Evt {
+                evt: Event::PlaybackState {
+                    state: PlayState::Playing,
+                    ..
+                }
+            }
+        )
+    })
+    .await;
 }

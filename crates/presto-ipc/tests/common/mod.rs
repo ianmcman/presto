@@ -47,7 +47,10 @@ pub fn names(v: &serde_json::Value, out: &mut BTreeSet<String>) {
 
 pub fn schema_names<T: schemars::JsonSchema>() -> BTreeSet<String> {
     let mut out = BTreeSet::new();
-    names(&serde_json::to_value(schemars::schema_for!(T)).unwrap(), &mut out);
+    names(
+        &serde_json::to_value(schemars::schema_for!(T)).unwrap(),
+        &mut out,
+    );
     out
 }
 

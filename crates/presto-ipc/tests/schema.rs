@@ -13,7 +13,10 @@ fn no_token_like_names() {
         assert!(n.contains(want), "collector missed {want}: {n:?}");
     }
     let bad: Vec<_> = n.iter().filter(|x| is_forbidden(x)).collect();
-    assert!(bad.is_empty(), "credential-like names in IPC types: {bad:?}");
+    assert!(
+        bad.is_empty(),
+        "credential-like names in IPC types: {bad:?}"
+    );
 }
 
 #[test]

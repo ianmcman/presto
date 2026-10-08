@@ -121,7 +121,7 @@ impl Player {
 
     pub fn apply(&mut self, cmd: &Command, now: Instant) -> Result<Vec<Event>, IpcError> {
         match cmd {
-            Command::SetQueue { ids, start } => {
+            Command::SetQueue { ids, start, play } => {
                 let items = ids
                     .iter()
                     .map(|id| {
@@ -139,7 +139,11 @@ impl Player {
                 self.queue = items;
                 self.rev += 1;
                 self.index = Some(*start as usize);
-                self.state = PlayState::Playing;
+                self.state = if *play {
+                    PlayState::Playing
+                } else {
+                    PlayState::Paused
+                };
                 self.restart(now);
                 Ok(vec![
                     self.queue_evt(),
@@ -148,6 +152,7 @@ impl Player {
                     self.progress(now),
                 ])
             }
+            Command::ShowWindow { .. } => Ok(vec![]),
             Command::Play => {
                 self.require_queue()?;
                 let pos = if self.state == PlayState::Ended {
@@ -233,6 +238,7 @@ mod tests {
         Command::SetQueue {
             ids: ids.iter().map(|s| s.to_string()).collect(),
             start,
+            play: true,
         }
     }
     fn secs(t0: Instant, s: u64) -> Instant {
@@ -267,6 +273,26 @@ mod tests {
             }
         ));
         assert!(matches!(ev[3], Event::Progress { position_ms: 0, .. }));
+    }
+
+    #[test]
+    fn set_queue_paused() {
+        let t0 = Instant::now();
+        let mut p = Player::new(t0);
+        let cmd = Command::SetQueue {
+            ids: vec!["s1".into()],
+            start: 0,
+            play: false,
+        };
+        let ev = p.apply(&cmd, t0).unwrap();
+        assert!(matches!(
+            ev[2],
+            Event::PlaybackState {
+                state: PlayState::Paused,
+                ..
+            }
+        ));
+        assert_eq!(p.position(secs(t0, 5)), 0);
     }
 
     #[test]

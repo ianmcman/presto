@@ -5,6 +5,8 @@ use std::time::Duration;
 pub struct Faults {
     pub hang: bool,
     pub auth_expired: bool,
+    /// Started signed out: cmd and req are rejected until `none`.
+    pub signed_out: bool,
     pub slow: Option<Duration>,
 }
 
@@ -13,7 +15,8 @@ impl Faults {
     pub fn apply(&mut self, spec: &FaultSpec) -> Vec<Event> {
         match spec {
             FaultSpec::None => {
-                let was_expired = std::mem::take(&mut self.auth_expired);
+                let was_expired =
+                    std::mem::take(&mut self.auth_expired) | std::mem::take(&mut self.signed_out);
                 self.hang = false;
                 self.slow = None;
                 if was_expired {
@@ -65,6 +68,22 @@ mod tests {
             }]
         ));
         assert!(!f.auth_expired);
+    }
+
+    #[test]
+    fn signed_out_then_none() {
+        let mut f = Faults {
+            signed_out: true,
+            ..Faults::default()
+        };
+        let ev = f.apply(&FaultSpec::None);
+        assert!(matches!(
+            ev.as_slice(),
+            [Event::Auth {
+                state: AuthState::SignedIn
+            }]
+        ));
+        assert!(!f.signed_out);
     }
 
     #[test]

@@ -8,7 +8,8 @@ use futures_util::StreamExt;
 use player::Player;
 use presto_ipc::transport::{self, TransportError};
 use presto_ipc::{
-    AuthState, ErrorKind, Event, FaultSpec, Frame, Hello, IpcError, Kind, Outcome, PROTO, Role, caps,
+    AuthState, Command, ErrorKind, Event, FaultSpec, Frame, Hello, IpcError, Kind, Outcome, PROTO,
+    Role, caps,
 };
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -25,6 +26,15 @@ struct Args {
     /// Startup fault, repeatable: none, hang, crash[@ms], auth_expired, slow[=ms].
     #[arg(long = "fault", value_parser = |s: &str| s.parse::<FaultSpec>())]
     faults: Vec<FaultSpec>,
+    /// Initial auth state.
+    #[arg(long, default_value = "signed_in", value_parser = ["signed_in", "signed_out"])]
+    auth: String,
+    /// Never send bridge_ready or the initial auth event.
+    #[arg(long)]
+    bridge_missing: bool,
+    /// Capabilities advertised in bridge_ready.
+    #[arg(long, value_delimiter = ',', default_value = "playback,queue,api")]
+    bridge_caps: Vec<String>,
 }
 
 struct Engine {
@@ -74,7 +84,14 @@ impl Engine {
                 out.push(Frame::Res { id, outcome: ok() });
                 out
             }
-            Frame::Cmd { id, .. } | Frame::Req { id, .. } if self.faults.auth_expired => {
+            // answered by the engine host, regardless of auth or bridge state
+            Frame::Cmd {
+                id,
+                cmd: Command::ShowWindow { .. },
+            } => vec![Frame::Res { id, outcome: ok() }],
+            Frame::Cmd { id, .. } | Frame::Req { id, .. }
+                if self.faults.auth_expired || self.faults.signed_out =>
+            {
                 vec![Frame::Res {
                     id,
                     outcome: Outcome::Err {
@@ -137,7 +154,13 @@ async fn main() {
     };
     let me = Hello::new(
         Role::Engine,
-        &[caps::PLAYBACK, caps::QUEUE, caps::API, caps::MOCK],
+        &[
+            caps::PLAYBACK,
+            caps::QUEUE,
+            caps::API,
+            caps::WINDOW,
+            caps::MOCK,
+        ],
         Some(format!("presto-engine-mock {}", env!("CARGO_PKG_VERSION"))),
     );
     if let Err(e) = transport::send(&mut conn, &Frame::Hello(me)).await {
@@ -160,15 +183,29 @@ async fn main() {
         player: Player::new(Instant::now()),
         faults: Faults::default(),
     };
+    let signed_out = args.auth == "signed_out";
+    engine.faults.signed_out = signed_out;
     let mut startup = vec![];
+    if !args.bridge_missing {
+        startup.extend(evts(vec![Event::BridgeReady {
+            version: "mock-1".into(),
+            capabilities: args.bridge_caps.clone(),
+            musickit_build: Some("mock".into()),
+        }]));
+    }
+    let mut fault_frames = vec![];
     for spec in &args.faults {
-        startup.extend(engine.apply_fault(spec));
+        fault_frames.extend(engine.apply_fault(spec));
     }
-    if startup.is_empty() {
-        startup = evts(vec![Event::Auth {
-            state: AuthState::SignedIn,
-        }]);
+    if fault_frames.is_empty() && !args.bridge_missing {
+        let state = if signed_out {
+            AuthState::SignedOut
+        } else {
+            AuthState::SignedIn
+        };
+        fault_frames = evts(vec![Event::Auth { state }]);
     }
+    startup.extend(fault_frames);
     let mut ticker = tokio::time::interval(Duration::from_millis(500));
     ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
     let (mut sink, mut stream) = conn.split();
