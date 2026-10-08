@@ -20,6 +20,10 @@ use std::time::Duration;
 use tokio::sync::{mpsc, oneshot, watch};
 use tokio::time::{Instant, MissedTickBehavior, interval, sleep, sleep_until, timeout};
 
+const SEEK_TOLERANCE_MS: u64 = 2000;
+const SEEK_SETTLE: Duration = Duration::from_millis(1500);
+const SEEK_TRIES: u32 = 3;
+
 type Tx = oneshot::Sender<Outcome>;
 
 pub(crate) enum Job {
@@ -59,6 +63,21 @@ struct Restore {
     /// The page lost its queue, so load it again.
     full: bool,
     resume_allowed: bool,
+    verify: Option<Verify>,
+}
+
+/// Post-load check that the seek landed and the play state is right (RESEARCH Pitfall 6).
+struct Verify {
+    target: u64,
+    resume: bool,
+    tries: u32,
+    since: Option<Instant>,
+}
+
+enum VerifyStep {
+    Done,
+    Wait,
+    Retry(VecDeque<Command>),
 }
 
 /// One engine connection's bookkeeping.
@@ -252,7 +271,7 @@ impl Actor {
         if self.restore.is_none()
             && let Some(snap) = self.take_snapshot()
         {
-            self.restore = Some(Restore { snap, full: false, resume_allowed: true });
+            self.restore = Some(Restore { snap, full: false, resume_allowed: true, verify: None });
         }
     }
 
@@ -334,9 +353,10 @@ impl Actor {
 
     fn begin_restore(&mut self) {
         let Some(r) = &self.restore else { return };
-        let st = self.state_tx.borrow();
         let s = &r.snap;
-        let load = r.full || st.queue.ids() != s.ids;
+        let playing = self.state_tx.borrow().player.state == PlayState::Playing;
+        let load = r.full || self.state_tx.borrow().queue.ids() != s.ids;
+        let resume = s.was_playing && r.resume_allowed;
         let mut v = VecDeque::new();
         if load {
             v.push_back(Command::SetQueue { ids: s.ids.clone(), start: s.index, play: false });
@@ -346,12 +366,55 @@ impl Actor {
             v.push_back(Command::SetShuffle { on: s.shuffle });
             v.push_back(Command::SetRepeat { mode: s.repeat });
             v.push_back(Command::SetVolume { volume: s.volume });
-        }
-        if s.was_playing && r.resume_allowed && (load || st.player.state != PlayState::Playing) {
+            // MusicKit may autoplay after a seek on a fresh load, so always end explicitly (D-01, D-04).
+            v.push_back(if resume { Command::Play } else { Command::Pause });
+        } else if resume && !playing {
             v.push_back(Command::Play);
+        } else if !resume && playing {
+            v.push_back(Command::Pause);
         }
-        drop(st);
+        let verify = load.then_some(Verify { target: s.position_ms, resume, tries: 0, since: None });
+        if load {
+            // a stale pre-crash position must not pass verification
+            self.set(|c| c.player.position_ms = 0);
+        }
+        if let Some(r) = &mut self.restore {
+            r.verify = verify;
+        }
         self.steps = Some(v);
+    }
+
+    fn verify_step(&mut self) -> VerifyStep {
+        let Some(v) = self.restore.as_mut().and_then(|r| r.verify.as_mut()) else { return VerifyStep::Done };
+        let (pos, state) = {
+            let st = self.state_tx.borrow();
+            (st.player.position_ms, st.player.state)
+        };
+        // only a lost seek lands short; a playing restore runs ahead legitimately
+        let landed = pos + SEEK_TOLERANCE_MS >= v.target;
+        let state_ok = if v.resume { state == PlayState::Playing } else { state == PlayState::Paused };
+        if landed && state_ok {
+            return VerifyStep::Done;
+        }
+        let since = *v.since.get_or_insert(Instant::now());
+        if since.elapsed() < SEEK_SETTLE {
+            return VerifyStep::Wait;
+        }
+        if v.tries >= SEEK_TRIES {
+            eprintln!(
+                "presto-core: restore: not confirmed after {SEEK_TRIES} tries (at {pos} ms, want {} ms, state {state:?})",
+                v.target
+            );
+            return VerifyStep::Done;
+        }
+        v.tries += 1;
+        v.since = None;
+        let mut steps = VecDeque::new();
+        if v.target > 0 {
+            steps.push_back(Command::Seek { ms: v.target });
+        }
+        steps.push_back(if v.resume { Command::Play } else { Command::Pause });
+        VerifyStep::Retry(steps)
     }
 
     /// Runs after every event: starts and advances the restore, announces Ready, flushes queued work.
@@ -372,15 +435,18 @@ impl Actor {
             match steps.pop_front() {
                 Some(cmd) => {
                     let load = matches!(cmd, Command::SetQueue { .. });
-                    // ponytail: no seek verify/retry; add if the live check shows seek-before-load is ignored (RESEARCH Pitfall 6).
                     let (tx, _rx) = oneshot::channel();
                     let id = s.send(Job::Cmd(cmd), tx).await?;
                     self.inflight = Some((id, load));
                 }
-                None => {
-                    self.restore = None;
-                    self.steps = None;
-                }
+                None => match self.verify_step() {
+                    VerifyStep::Wait => break,
+                    VerifyStep::Retry(v) => self.steps = Some(v),
+                    VerifyStep::Done => {
+                        self.restore = None;
+                        self.steps = None;
+                    }
+                },
             }
         }
         if self.usable() {
@@ -408,7 +474,7 @@ impl Actor {
         self.same_queue_crashes = if Some(k) == self.last_crash_key { self.same_queue_crashes + 1 } else { 1 };
         self.last_crash_key = Some(k);
         let resume_allowed = self.same_queue_crashes < 2;
-        self.restore = Some(Restore { snap, full: true, resume_allowed });
+        self.restore = Some(Restore { snap, full: true, resume_allowed, verify: None });
     }
 
     async fn run(mut self) {
@@ -422,7 +488,7 @@ impl Actor {
                     if self.restore.is_none()
                         && let Some(snap) = self.take_snapshot()
                     {
-                        self.restore = Some(Restore { snap, full: true, resume_allowed: true });
+                        self.restore = Some(Restore { snap, full: true, resume_allowed: true, verify: None });
                     }
                     Wake::Restart
                 }

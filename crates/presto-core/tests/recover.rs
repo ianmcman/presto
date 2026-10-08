@@ -85,7 +85,18 @@ fn ids(s: &presto_core::CoreState) -> Vec<String> {
 
 /// Rig with [s1,s2,s3] loaded at index 1 and the position at 30 s.
 async fn playing_rig() -> (Rig, tokio::sync::watch::Receiver<presto_core::CoreState>) {
-    let r = rig(|_| vec![]).await;
+    playing_rig_with(|_| vec![]).await
+}
+
+/// First launch normal, every restarted engine drops the first seek and autoplays.
+fn quirky(n: u32) -> Vec<String> {
+    if n == 0 { vec![] } else { vec!["--restore-quirks".into()] }
+}
+
+async fn playing_rig_with(
+    argv: impl Fn(u32) -> Vec<String> + Send + Sync + 'static,
+) -> (Rig, tokio::sync::watch::Receiver<presto_core::CoreState>) {
+    let r = rig(argv).await;
     let mut rx = r.core.state();
     wait_for(&mut rx, T, ready).await;
     assert!(matches!(r.core.command(queue(&["s1", "s2", "s3"], 1)).await, Outcome::Ok { .. }));
@@ -155,5 +166,36 @@ async fn restore_keeps_shuffle_repeat_volume() {
     assert!(s.player.shuffle);
     assert_eq!(s.player.repeat, RepeatMode::All);
     assert!((s.player.volume - 0.3).abs() < 1e-6);
+    r.core.shutdown().await;
+}
+
+#[tokio::test]
+async fn quirky_crash_restores_position() {
+    let (r, mut rx) = playing_rig_with(quirky).await;
+    let s = crash(&r, &mut rx, 1).await;
+    assert_eq!(s.queue.index, Some(1));
+    assert_eq!(s.player.state, PlayState::Playing);
+    assert!((30000..=36000).contains(&s.player.position_ms), "{}", s.player.position_ms);
+    r.core.shutdown().await;
+}
+
+#[tokio::test]
+async fn quirky_crash_restores_paused_when_paused() {
+    let (r, mut rx) = playing_rig_with(quirky).await;
+    r.core.command(Command::Pause).await;
+    wait_for(&mut rx, T, |s| s.player.state == PlayState::Paused).await;
+    let s = crash(&r, &mut rx, 1).await;
+    assert_eq!(s.player.state, PlayState::Paused);
+    assert!((30000..=31000).contains(&s.player.position_ms), "{}", s.player.position_ms);
+    r.core.shutdown().await;
+}
+
+#[tokio::test]
+async fn quirky_second_crash_restores_paused() {
+    let (r, mut rx) = playing_rig_with(quirky).await;
+    let s = crash(&r, &mut rx, 1).await;
+    assert_eq!(s.player.state, PlayState::Playing);
+    let s = crash(&r, &mut rx, 2).await;
+    assert_eq!(s.player.state, PlayState::Paused);
     r.core.shutdown().await;
 }
