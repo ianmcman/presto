@@ -27,6 +27,10 @@ pub(crate) fn list_states<T>(app: &mut App, ui: &mut Ui, s: &ListState<T>, key: 
         return false;
     }
     if let Some(err) = &s.error {
+        // The session-expired banner already says it.
+        if matches!(err.kind, UiErrorKind::AuthExpired) {
+            return false;
+        }
         let copy = error_copy(&err.kind);
         let retry = err.kind.retryable().then(|| tr("Try again"));
         match s.error_display() {

@@ -34,7 +34,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
     let id = egui::Id::new("search_field");
     let mut text = ui.data(|d| d.get_temp::<String>(id)).unwrap_or_else(|| st.term.clone());
     let resp = ui.add(egui::TextEdit::singleline(&mut text).id(id.with("edit")).hint_text(tr("Search")).desired_width(f32::INFINITY));
-    if app.focus_search {
+    if app.focus_search || (st.term.is_empty() && ui.memory(|m| m.focused().is_none())) {
         resp.request_focus();
         app.focus_search = false;
     }

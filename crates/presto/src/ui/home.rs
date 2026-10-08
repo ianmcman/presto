@@ -32,7 +32,8 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             cards(app, ui, &tr("Recently Played"), &r.items);
         }
         if b {
-            for sh in &s.items {
+            let recent_title = tr("Recently Played");
+            for sh in s.items.iter().filter(|sh| sh.title != recent_title) {
                 cards(app, ui, &sh.title, &sh.items);
             }
         }

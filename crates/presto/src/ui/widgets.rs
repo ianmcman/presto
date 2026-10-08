@@ -267,7 +267,8 @@ pub fn shelf(ui: &mut Ui, pal: &Palette, title: &str, see_all: bool, add: impl F
         }
     });
     ui.add_space(theme::SM);
-    egui::ScrollArea::horizontal().id_salt(title).show(ui, |ui| {
+    // Salt by position, not title: shelves can share a title.
+    egui::ScrollArea::horizontal().id_salt(ui.next_auto_id()).show(ui, |ui| {
         ui.horizontal_top(|ui| {
             ui.spacing_mut().item_spacing.x = theme::MD;
             add(ui);
