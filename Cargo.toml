@@ -34,6 +34,7 @@ fastframe-fonts = { git = "https://github.com/crmne/fastframe", tag = "v0.4.1" }
 fastframe-icons = { git = "https://github.com/crmne/fastframe", tag = "v0.4.1" }
 fastframe-theme = { git = "https://github.com/crmne/fastframe", tag = "v0.4.1" }
 fastframe-i18n = { git = "https://github.com/crmne/fastframe", tag = "v0.4.1" }
+fastframe-now-playing = { git = "https://github.com/crmne/fastframe", tag = "v0.4.1" }
 
 [patch.crates-io]
 ecolor = { git = "https://github.com/crmne/egui", rev = "ba6790fe7cf46e58e8d27ce1524cbfdee745e938" }

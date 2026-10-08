@@ -16,7 +16,9 @@ path = "src/main.rs"
 [dependencies]
 presto-core = { workspace = true }
 presto-ipc = { workspace = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util"] }
+nix = { workspace = true }
+fastframe-now-playing = { workspace = true }
 clap = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
