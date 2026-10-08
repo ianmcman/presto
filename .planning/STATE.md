@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 05-06-PLAN.md
-last_updated: "2026-10-08T17:27:35.425Z"
+stopped_at: Completed 05-07-PLAN.md
+last_updated: "2026-10-08T17:34:24.825Z"
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 45
-  completed_plans: 40
+  completed_plans: 41
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-10-07)
 ## Current Position
 
 Phase: 05 (playback-ui-and-demo-mode) — EXECUTING
-Plan: 7 of 11
+Plan: 8 of 11
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ None yet.
 - [Phase 03]: Only a failed SetQueue ends a restore; must-pause restores send Pause first and stay muted while Playing or Loading
 - [Phase 04]: Cache dir resolved by pure cache_base helper; store is disposable (recreate on bad version/corruption)
 - [Phase 04]: Mock search hints match word prefix
+- [Phase 05]: Backend::shutdown takes &self; App::on_exit calls it
 
 ### Pending Todos
 
@@ -67,9 +68,10 @@ None yet.
 | 261008-bsb | Harden artwork fetch: https *.mzstatic.com only, no redirects, 10 MB cap | 2026-10-08 | e882b55 | [261008-bsb-harden-artwork-fetch-https-mzstatic-host](./quick/261008-bsb-harden-artwork-fetch-https-mzstatic-host/) |
 | Phase 05 P05 | 15min | 2 tasks | 2 files |
 | Phase 05 P06 | 15min | 2 tasks | 7 files |
+| Phase 05 P07 | 25min | 3 tasks | 19 files |
 
 ## Session Continuity
 
-Last session: 2026-10-08T17:27:35.423Z
-Stopped at: Completed 05-06-PLAN.md
+Last session: 2026-10-08T17:34:24.824Z
+Stopped at: Completed 05-07-PLAN.md
 Resume file: None
