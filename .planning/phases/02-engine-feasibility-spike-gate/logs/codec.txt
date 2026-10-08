@@ -1,0 +1,16 @@
+# codec evidence, run label codec (check all --diag, song 6781024437). Playlist URIs stripped.
+https://aod-ssl.itunes.apple.com/itunes-assets/Music211/v4/8e/50/b5/8e50b51f-7d42-0b31-182b-cfc483f7bdf8/mzaf_A6781024437.rphq.aac.wa.m3u8 application/x-mpegurl
+# playlist head fetched unauthenticated with curl from the URL above:
+#EXTM3U
+#EXT-X-TARGETDURATION:10
+#EXT-X-VERSION:7
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-INDEPENDENT-SEGMENTS
+#EXT-X-KEY:METHOD=ISO-23001-7,URI="<stripped>"
+#EXT-X-MAP:URI="<stripped>",BYTERANGE="970@0"
+#EXTINF:9.98458,	
+# CODECS= attribute: the song playlist is a media playlist (no master), so no CODECS= line exists for it. The mvod.itunes.apple.com master playlists seen are animated artwork video (avc1/hvc1), not audio.
+# 'presto-diag media' (Network type Media) lines seen: 0
+# Inference: AAC (filename .aac) in fragmented MP4, ISO-23001-7 (CENC) encrypted. Exact CODECS string unconfirmed.
+# Diag mode finding: with --diag the Electron main process died with SIGTRAP shortly after playback began (CDP Network domain attached; same with net.fetch instead of getResponseBody). Runs without --diag are stable.

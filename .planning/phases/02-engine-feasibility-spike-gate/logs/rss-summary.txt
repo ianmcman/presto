@@ -1,0 +1,7 @@
+# rss-measure-wayland (300 s playing, 5 s interval, whole process tree, MiB)
+idle_after_hello: rss_mib min=421.7 max=421.7 last=421.7
+playing: rss_mib min=1593.5 max=1775.8 last=1605.3
+signed_in_idle: rss_mib min=1489.1 max=1489.1 last=1489.1
+playing: pss_mib min=880.2 max=1068.5 last=892.0
+idle_after_hello: pss_mib min=173.7 max=173.7 last=173.7
+signed_in_idle: pss_mib min=935.8 max=935.8 last=935.8
