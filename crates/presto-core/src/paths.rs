@@ -4,16 +4,30 @@ use nix::sys::signal::{Signal, kill, killpg};
 use nix::unistd::Pid;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, DirBuilder, File, OpenOptions};
-use std::io::{self, Write};
+use std::ffi::OsString;
+use std::io::{self, Read, Write};
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+#[derive(Clone, Debug)]
 pub struct Paths {
     pub state: PathBuf,
     pub profile: PathBuf,
     pub logs: PathBuf,
     pub pidfile: PathBuf,
+    pub cache: PathBuf,
+    pub artwork: PathBuf,
+    pub db: PathBuf,
+    pub install_id: PathBuf,
+}
+
+/// $XDG_CACHE_HOME/presto, else $HOME/.cache/presto
+fn cache_base(xdg: Option<OsString>, home: Option<OsString>) -> PathBuf {
+    xdg.filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(home.unwrap_or_default()).join(".cache"))
+        .join("presto")
 }
 
 impl Paths {
@@ -25,7 +39,15 @@ impl Paths {
             .unwrap_or_else(|| {
                 PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join(".local/state")
             });
-        Paths::under(base.join("presto"))
+        let mut p = Paths::under(base.join("presto"));
+        p.set_cache(cache_base(std::env::var_os("XDG_CACHE_HOME"), std::env::var_os("HOME")));
+        p
+    }
+
+    fn set_cache(&mut self, cache: PathBuf) {
+        self.artwork = cache.join("artwork");
+        self.db = cache.join("presto.db");
+        self.cache = cache;
     }
 
     pub fn under(state: PathBuf) -> Paths {
@@ -33,15 +55,38 @@ impl Paths {
             profile: state.join("engine-profile"),
             logs: state.join("logs"),
             pidfile: state.join("engine.pid"),
+            cache: state.join("cache"),
+            artwork: state.join("cache/artwork"),
+            db: state.join("cache/presto.db"),
+            install_id: state.join("install-id"),
             state,
         }
     }
 
     pub fn prepare(&self) -> io::Result<()> {
-        for d in [&self.state, &self.profile, &self.logs] {
+        for d in [&self.state, &self.profile, &self.logs, &self.cache, &self.artwork] {
             ensure_private_dir(d)?;
         }
         Ok(())
+    }
+
+    /// Random id created once, kept 0600. Cache key with the storefront (D-16).
+    pub fn install_id(&self) -> io::Result<String> {
+        if let Ok(s) = fs::read_to_string(&self.install_id) {
+            let s = s.trim();
+            if s.len() == 36 {
+                return Ok(s.to_string());
+            }
+        }
+        let mut b = [0u8; 16];
+        File::open("/dev/urandom")?.read_exact(&mut b)?;
+        b[6] = (b[6] & 0x0f) | 0x40;
+        b[8] = (b[8] & 0x3f) | 0x80;
+        let h: String = b.iter().map(|x| format!("{x:02x}")).collect();
+        let id = format!("{}-{}-{}-{}-{}", &h[..8], &h[8..12], &h[12..16], &h[16..20], &h[20..]);
+        let mut f = OpenOptions::new().write(true).create(true).truncate(true).mode(0o600).open(&self.install_id)?;
+        f.write_all(id.as_bytes())?;
+        Ok(id)
     }
 }
 
@@ -236,6 +281,38 @@ mod tests {
         pf.write(&f).unwrap();
         assert_eq!(Pidfile::read(&f).unwrap(), Some(pf));
         assert_eq!(mode(&f), 0o600);
+    }
+
+    #[test]
+    fn paths_cache_layout() {
+        let p = Paths::under(PathBuf::from("/s"));
+        assert_eq!(p.cache, Path::new("/s/cache"));
+        assert_eq!(p.artwork, Path::new("/s/cache/artwork"));
+        assert_eq!(p.db, Path::new("/s/cache/presto.db"));
+        assert_eq!(p.install_id, Path::new("/s/install-id"));
+        assert_eq!(cache_base(Some("/x".into()), Some("/h".into())), Path::new("/x/presto"));
+        assert_eq!(cache_base(Some("".into()), Some("/h".into())), Path::new("/h/.cache/presto"));
+        assert_eq!(cache_base(None, Some("/h".into())), Path::new("/h/.cache/presto"));
+    }
+
+    #[test]
+    fn paths_prepare_cache_dirs() {
+        let t = tempfile::tempdir().unwrap();
+        let p = Paths::under(t.path().join("state"));
+        p.prepare().unwrap();
+        assert_eq!(mode(&p.cache), 0o700);
+        assert_eq!(mode(&p.artwork), 0o700);
+    }
+
+    #[test]
+    fn paths_install_id_stable() {
+        let t = tempfile::tempdir().unwrap();
+        let p = Paths::under(t.path().to_path_buf());
+        let a = p.install_id().unwrap();
+        assert_eq!(a.len(), 36);
+        assert_eq!(a.as_bytes()[14], b'4');
+        assert_eq!(mode(&p.install_id), 0o600);
+        assert_eq!(p.install_id().unwrap(), a);
     }
 
     #[test]

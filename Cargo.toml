@@ -22,3 +22,6 @@ futures-util = { version = "0.3", features = ["sink"] }
 clap = { version = "4", features = ["derive", "env"] }
 insta = { version = "1", features = ["json"] }
 tempfile = "3"
+rusqlite = { version = "0.40", features = ["bundled"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+sha2 = "0.11"

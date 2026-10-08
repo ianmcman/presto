@@ -13,7 +13,10 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["io-std"] }
 futures-util = { workspace = true }
 nix = { workspace = true }
+rusqlite = { workspace = true }
+reqwest = { workspace = true }
+sha2 = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
-tokio = { workspace = true, features = ["io-std"] }
+tokio = { workspace = true, features = ["io-std", "test-util"] }
