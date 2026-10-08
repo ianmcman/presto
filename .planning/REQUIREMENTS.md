@@ -49,7 +49,7 @@
 ### Desktop Integration
 
 - [ ] **DESK-01**: MPRIS exposes now-playing and controls from engine events; media keys work; engine's own MediaSession is disabled
-- [ ] **DESK-02**: CLI controls playback and prints `status --json`
+- [x] **DESK-02**: CLI controls playback and prints `status --json`
 
 ### Packaging
 
@@ -98,7 +98,7 @@
 | PLAY-03 | Phase 5 | Complete |
 | PLAY-04 | Phase 5 | Complete |
 | DESK-01 | Phase 6 | Pending |
-| DESK-02 | Phase 6 | Pending |
+| DESK-02 | Phase 6 | Complete |
 | PKG-01 | Phase 7 | Pending |
 | PKG-02 | Phase 7 | Pending |
 | SPIKE-01 | Phase 2 | Complete |
