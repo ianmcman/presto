@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-07-PLAN.md
-last_updated: "2026-10-08T10:05:08.489Z"
+stopped_at: Completed 03-09-PLAN.md
+last_updated: "2026-10-08T10:46:35.225Z"
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 18
-  completed_plans: 17
+  total_plans: 20
+  completed_plans: 19
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-10-07)
 ## Current Position
 
 Phase: 03 (core-backend-supervisor-auth) — EXECUTING
-Plan: 2 of 8
+Plan: 2 of 10
 
 ## Performance Metrics
 
@@ -44,6 +44,7 @@ None yet.
 - [Phase 03]: Supervisor: group kill with Drop guard, drift never restarts, pre-ready commands queued
 - [Phase 03]: Ready published only when bridge, auth event seen and restore done; restore runs stepwise from pump()
 - [Phase 03]: Restore ends with explicit Play/Pause and verified seek (3 retries)
+- [Phase 03]: Restore verify waits out Loading, fixes seek and state separately, holds 2s before Ready
 
 ### Pending Todos
 
@@ -56,6 +57,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-08T10:05:08.488Z
-Stopped at: Completed 03-07-PLAN.md
+Last session: 2026-10-08T10:46:35.223Z
+Stopped at: Completed 03-09-PLAN.md
 Resume file: None

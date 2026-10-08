@@ -73,8 +73,8 @@ Plans:
 - [x] 03-05-PLAN.md: Queue mirror, auth gate, restore after crash and re-auth (wave 3)
 - [x] 03-06-PLAN.md: Live driver and manual checklist on the real engine (wave 4)
 - [x] 03-07-PLAN.md: Gap: restore ends with Play/Pause and verified seek, quirky-mock tests (wave 1)
-- [ ] 03-08-PLAN.md: Gap: re-run live crash/hang checklist C and D (wave 2)
-- [ ] 03-09-PLAN.md: Gap: mock autoplay-after-load, restore waits out loading and holds paused (wave 1)
+- [x] 03-08-PLAN.md: Gap: re-run live crash/hang checklist C and D (wave 2)
+- [x] 03-09-PLAN.md: Gap: mock autoplay-after-load, restore waits out loading and holds paused (wave 1)
 - [ ] 03-10-PLAN.md: Gap: live re-run of C2, C3, D; mark CORE-01 on pass (wave 2)
 
 ### Phase 4: Data Layer and Cache
