@@ -7,7 +7,7 @@ Fix the engine-neutral IPC contract and a mock engine first, then run the engine
 ## Phases
 
 - [ ] **Phase 1: IPC Contract and Mock Engine** - Versioned JSON protocol, token-free schema, mock engine with fault injection, spotifast seam notes
-- [ ] **Phase 2: Engine Feasibility Spike (GATE)** - Prove full-track playback, persistent sign-in, proxied library calls and events from a hidden Widevine engine; stop for approval
+- [x] **Phase 2: Engine Feasibility Spike (GATE)** - Prove full-track playback, persistent sign-in, proxied library calls and events from a hidden Widevine engine; stop for approval (completed 2026-10-08)
 - [ ] **Phase 3: Core Backend, Supervisor, Auth** - Engine supervision and recovery, runtime bridge handshake, queue mirror, sign-in and re-auth
 - [ ] **Phase 4: Data Layer and Cache** - Library, search, home, storefront, error states, disk caches
 - [ ] **Phase 5: Playback UI and Demo Mode** - Ported egui views and playback controls, `presto --demo`
@@ -51,7 +51,7 @@ Plans:
 - [x] 02-03-PLAN.md: Engine main.js, preload.js, bridge.js with stub-MusicKit tests (wave 2)
 - [x] 02-04-PLAN.md: Live run: smoke, hand sign-in, hidden restart checklist on Wayland (wave 3)
 - [x] 02-05-PLAN.md: Measurements: hidden-window and MPRIS matrix, RSS, codec, queue surface, listening check (wave 4)
-- [ ] 02-06-PLAN.md: SPIKE-REPORT.md, D-15 fallback check, go/no-go approval (wave 5)
+- [x] 02-06-PLAN.md: SPIKE-REPORT.md, D-15 fallback check, go/no-go approval (wave 5)
 
 ### Phase 3: Core Backend, Supervisor, Auth
 **Goal**: The app runs a supervised engine reliably and the user can sign in once and stay signed in. (Outline; detail after spike approval.)
@@ -114,7 +114,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. IPC Contract and Mock Engine | 0/4 | Not started | - |
-| 2. Engine Feasibility Spike (GATE) | 0/6 | Not started | - |
+| 2. Engine Feasibility Spike (GATE) | 6/6 | Complete   | 2026-10-08 |
 | 3. Core Backend, Supervisor, Auth | 0/TBD | Not started | - |
 | 4. Data Layer and Cache | 0/TBD | Not started | - |
 | 5. Playback UI and Demo Mode | 0/TBD | Not started | - |

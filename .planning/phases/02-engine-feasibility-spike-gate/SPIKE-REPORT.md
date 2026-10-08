@@ -113,4 +113,12 @@ Desk rows come from CLAUDE.md, not from this spike.
 
 ## Approval
 
-Pending user approval.
+Decision: go.
+Engine: castlabs ECS v44.5.1+wvcus.
+Date: 2026-10-07. Approved by the user with no conditions.
+
+Open items shown to the user before approval:
+- Codec is inferred as AAC, not confirmed from the stream.
+- No native X11 run.
+- Multi-item queue not tried live.
+- Apple ToS unassessed.

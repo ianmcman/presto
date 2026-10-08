@@ -19,7 +19,7 @@
 - [x] **SPIKE-03**: A command from a Rust process plays a full catalog track past 60 s and across a seek on a subscriber account
 - [x] **SPIKE-04**: A library API call (`/v1/me/library/playlists`) proxied through the page returns JSON to Rust
 - [x] **SPIKE-05**: Playback state events stream to Rust
-- [ ] **SPIKE-06**: Spike measures idle and playing RSS, hidden-window behavior on Wayland and X11, stream codec, queue API surface, MPRIS duplication, and compares engine candidates with a recommendation
+- [x] **SPIKE-06**: Spike measures idle and playing RSS, hidden-window behavior on Wayland and X11, stream codec, queue API surface, MPRIS duplication, and compares engine candidates with a recommendation
 
 ### Core and Auth
 
@@ -106,7 +106,7 @@
 | SPIKE-03 | Phase 2 | Complete |
 | SPIKE-04 | Phase 2 | Complete |
 | SPIKE-05 | Phase 2 | Complete |
-| SPIKE-06 | Phase 2 | Pending |
+| SPIKE-06 | Phase 2 | Complete |
 | DATA-01 | Phase 4 | Pending |
 | DATA-02 | Phase 4 | Pending |
 | DATA-03 | Phase 4 | Pending |
