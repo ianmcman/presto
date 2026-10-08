@@ -14,10 +14,10 @@ Full-catalog Apple Music playback and library browsing from a fast native Linux 
 
 - Spotifast seams documented (`docs/SPOTIFAST-SEAMS.md`). Validated in Phase 1: IPC Contract and Mock Engine
 - IPC wire contract, version handshake, token-name guard and fault-injecting mock engine. Validated in Phase 1: IPC Contract and Mock Engine
+- Engine feasibility spike: MusicKit reachable, sign-in persists, full-track playback with seek, library API proxied, events streamed; go on castlabs ECS v44.5.1+wvcus. Validated in Phase 2: Engine Feasibility Spike Gate
 
 ### Active
 
-- [ ] Engine feasibility spike proves: MusicKit instance reachable, sign-in persists, full-track playback from a Rust command, library API proxied to Rust, state events streamed back
 - [ ] Native egui UI ported from spotifast (views, theming, i18n, CLI control, MPRIS)
 - [ ] presto-engine hosts music.apple.com in a hidden Widevine Chromium engine and injects a runtime-loaded bridge script
 - [ ] JSON IPC protocol (commands, proxied requests with IDs/timeouts, events, versioning, crash/hang/reload recovery)
@@ -84,4 +84,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-07 after Phase 1*
+*Last updated: 2026-10-08 after Phase 2*
