@@ -41,6 +41,10 @@ impl Player {
         }
     }
 
+    pub fn audible(&self) -> bool {
+        self.state == PlayState::Playing && self.volume > 0.0
+    }
+
     fn duration(&self) -> u64 {
         self.index.map_or(0, |i| self.queue[i].duration_ms)
     }
@@ -453,6 +457,17 @@ mod tests {
         assert_eq!(p.state, PlayState::Ended);
         p.apply(&Command::Play, secs(t0, 300)).unwrap();
         assert_eq!(p.position(secs(t0, 300)), 0);
+    }
+
+    #[test]
+    fn audible_needs_playing_and_volume() {
+        let (mut p, t0) = started();
+        assert!(p.audible());
+        p.apply(&Command::SetVolume { volume: 0.0 }, t0).unwrap();
+        assert!(!p.audible());
+        p.apply(&Command::SetVolume { volume: 1.0 }, t0).unwrap();
+        p.apply(&Command::Pause, t0).unwrap();
+        assert!(!p.audible());
     }
 
     #[test]

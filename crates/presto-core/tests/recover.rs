@@ -169,10 +169,21 @@ async fn restore_keeps_shuffle_repeat_volume() {
     r.core.shutdown().await;
 }
 
+/// Positions of every `mock: audible at N ms` line in the engine log of `s`.
+fn audible_at(s: &presto_core::CoreState) -> Vec<u64> {
+    let log = std::fs::read_to_string(s.log_path.as_ref().expect("log_path")).unwrap_or_default();
+    log.lines()
+        .filter_map(|l| l.split("mock: audible at ").nth(1))
+        .filter_map(|r| r.trim_end_matches(" ms").trim().parse().ok())
+        .collect()
+}
+
 #[tokio::test]
 async fn quirky_crash_restores_position() {
     let (r, mut rx) = playing_rig_with(quirky).await;
     let s = crash(&r, &mut rx, 1).await;
+    let first = audible_at(&s).first().copied().expect("audible line");
+    assert!(first >= 28000, "audible at {first} ms");
     assert_eq!(s.queue.index, Some(1));
     assert_eq!(s.player.state, PlayState::Playing);
     assert!((30000..=36000).contains(&s.player.position_ms), "{}", s.player.position_ms);
@@ -190,6 +201,7 @@ async fn quirky_crash_restores_paused_when_paused() {
     let s = rx.borrow().clone();
     assert_eq!(s.player.state, PlayState::Paused);
     assert!((30000..=31000).contains(&s.player.position_ms), "{}", s.player.position_ms);
+    assert!(audible_at(&s).is_empty(), "{:?}", audible_at(&s));
     r.core.shutdown().await;
 }
 
@@ -202,5 +214,6 @@ async fn quirky_second_crash_restores_paused() {
     assert_eq!(s.player.state, PlayState::Paused);
     tokio::time::sleep(Duration::from_millis(1500)).await;
     assert_eq!(rx.borrow().player.state, PlayState::Paused);
+    assert!(audible_at(&s).is_empty(), "{:?}", audible_at(&s));
     r.core.shutdown().await;
 }

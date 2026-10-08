@@ -102,7 +102,7 @@ impl Engine {
                     },
                 }]
             }
-            Frame::Cmd { id, cmd } => match self.player.apply(&cmd, now) {
+            Frame::Cmd { id, cmd } => match self.audible_log(now, |p| p.apply(&cmd, now)) {
                 Ok(events) => {
                     let mut out = evts(events);
                     out.push(Frame::Res {
@@ -130,7 +130,17 @@ impl Engine {
     }
 
     fn tick(&mut self, now: Instant) -> Vec<Frame> {
-        evts(self.player.tick(now))
+        evts(self.audible_log(now, |p| p.tick(now)))
+    }
+
+    /// Logs when the player becomes audible, so tests can assert restores are silent.
+    fn audible_log<R>(&mut self, now: Instant, f: impl FnOnce(&mut Player) -> R) -> R {
+        let was = self.player.audible();
+        let r = f(&mut self.player);
+        if !was && self.player.audible() {
+            eprintln!("mock: audible at {} ms", self.player.position(now));
+        }
+        r
     }
 }
 
