@@ -49,7 +49,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             let title = if singles { tr("Singles & EPs") } else { tr("Albums") };
             ui.label(RichText::new(format!("{}: {title}", d.head.name)).font(theme::heading()).color(pal.text));
             ui.add_space(theme::MD);
-            ui.horizontal_wrapped(|ui| {
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Min).with_main_wrap(true), |ui| {
                 ui.spacing_mut().item_spacing = egui::vec2(theme::MD, theme::MD);
                 cards(app, ui, if singles { &d.singles } else { &d.albums });
             });

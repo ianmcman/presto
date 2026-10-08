@@ -164,7 +164,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
     } else {
         let mut last = 0;
         egui::ScrollArea::vertical().id_salt(title).auto_shrink(false).show(ui, |ui| {
-            ui.horizontal_wrapped(|ui| {
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Min).with_main_wrap(true), |ui| {
                 ui.spacing_mut().item_spacing = egui::vec2(theme::MD, theme::MD);
                 for (i, it) in s.items.iter().enumerate() {
                     let r = item_card(app, ui, it);
