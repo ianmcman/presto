@@ -70,7 +70,7 @@ Plans:
 - [x] 03-02-PLAN.md: presto-core crate: 0700 paths, pidfile sweep, backoff (wave 1)
 - [x] 03-03-PLAN.md: Engine: bridge path override, bridge_ready, Rust-driven window, close-to-hide, hard exit (wave 1)
 - [x] 03-04-PLAN.md: Supervisor actor: spawn, handshake, heartbeat, backoff restart, drift (wave 2)
-- [ ] 03-05-PLAN.md: Queue mirror, auth gate, restore after crash and re-auth (wave 3)
+- [x] 03-05-PLAN.md: Queue mirror, auth gate, restore after crash and re-auth (wave 3)
 - [ ] 03-06-PLAN.md: Live driver and manual checklist on the real engine (wave 4)
 
 ### Phase 4: Data Layer and Cache

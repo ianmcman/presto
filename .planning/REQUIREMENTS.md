@@ -25,9 +25,9 @@
 
 - [x] **CORE-01**: Supervisor detects engine crash or hang, restarts with backoff, and restores queue and position
 - [x] **CORE-02**: Bridge script loads from a standalone file at runtime and reports version and capabilities in a handshake
-- [ ] **CORE-03**: MusicKit owns the queue; Rust holds a read-only mirror reconciled by revision counter
+- [x] **CORE-03**: MusicKit owns the queue; Rust holds a read-only mirror reconciled by revision counter
 - [x] **AUTH-01**: User signs in once through Apple's own login flow shown in the engine window, then it is hidden
-- [ ] **AUTH-02**: App detects an expired or signed-out session from engine events and offers re-auth, keeping cached data visible
+- [x] **AUTH-02**: App detects an expired or signed-out session from engine events and offers re-auth, keeping cached data visible
 - [x] **AUTH-03**: Engine profile directory is created with mode 0700
 
 ### Data
@@ -89,9 +89,9 @@
 | IPC-04 | Phase 5 | Pending |
 | CORE-01 | Phase 3 | Complete |
 | CORE-02 | Phase 3 | Complete |
-| CORE-03 | Phase 3 | Pending |
+| CORE-03 | Phase 3 | Complete |
 | AUTH-01 | Phase 3 | Complete |
-| AUTH-02 | Phase 3 | Pending |
+| AUTH-02 | Phase 3 | Complete |
 | AUTH-03 | Phase 3 | Complete |
 | PLAY-01 | Phase 5 | Pending |
 | PLAY-02 | Phase 5 | Pending |

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-04-PLAN.md
-last_updated: "2026-10-08T03:48:19.902Z"
+stopped_at: Completed 03-05-PLAN.md
+last_updated: "2026-10-08T03:54:40.616Z"
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 16
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-10-07)
 ## Current Position
 
 Phase: 03 (core-backend-supervisor-auth) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 
 ## Performance Metrics
 
@@ -42,6 +42,7 @@ None yet.
 - [Phase 02]: Spike gate: go, engine v44.5.1+wvcus
 - [Phase 02]: Phase 3 supervisor must detect/clean stale engine or profile lock and reap orphans after SIGKILL (orphan correlated with SIGTRAP, unconfirmed)
 - [Phase 03]: Supervisor: group kill with Drop guard, drift never restarts, pre-ready commands queued
+- [Phase 03]: Ready published only when bridge, auth event seen and restore done; restore runs stepwise from pump()
 
 ### Pending Todos
 
@@ -54,6 +55,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-08T03:48:19.901Z
-Stopped at: Completed 03-04-PLAN.md
+Last session: 2026-10-08T03:54:40.614Z
+Stopped at: Completed 03-05-PLAN.md
 Resume file: None
