@@ -35,6 +35,9 @@ struct Args {
     /// Capabilities advertised in bridge_ready.
     #[arg(long, value_delimiter = ',', default_value = "playback,queue,api")]
     bridge_caps: Vec<String>,
+    /// Test only: drop the first seek after set_queue and autoplay, like MusicKit mid-load.
+    #[arg(long)]
+    restore_quirks: bool,
 }
 
 struct Engine {
@@ -183,6 +186,7 @@ async fn main() {
         player: Player::new(Instant::now()),
         faults: Faults::default(),
     };
+    engine.player.restore_quirks = args.restore_quirks;
     let signed_out = args.auth == "signed_out";
     engine.faults.signed_out = signed_out;
     let mut startup = vec![];

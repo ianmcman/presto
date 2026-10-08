@@ -16,6 +16,9 @@ pub struct Player {
     shuffle: bool,
     repeat: RepeatMode,
     seq: u64,
+    /// Mimics MusicKit on a fresh load: the first seek after set_queue is dropped and playback autostarts (03-06 live gaps).
+    pub restore_quirks: bool,
+    loading: bool,
 }
 
 impl Player {
@@ -31,6 +34,8 @@ impl Player {
             shuffle: false,
             repeat: RepeatMode::Off,
             seq: 0,
+            restore_quirks: false,
+            loading: false,
         }
     }
 
@@ -145,6 +150,7 @@ impl Player {
                     PlayState::Paused
                 };
                 self.restart(now);
+                self.loading = self.restore_quirks;
                 Ok(vec![
                     self.queue_evt(),
                     self.track_evt(),
@@ -176,6 +182,14 @@ impl Player {
             }
             Command::Seek { ms } => {
                 self.require_queue()?;
+                if self.loading {
+                    self.loading = false;
+                    self.base_ms = self.position(now);
+                    self.base_at = now;
+                    self.state = PlayState::Playing;
+                    self.seq += 1;
+                    return Ok(vec![self.state_evt(), self.progress(now)]);
+                }
                 self.base_ms = (*ms).min(self.duration());
                 self.base_at = now;
                 self.seq += 1;
@@ -419,5 +433,25 @@ mod tests {
         assert_eq!(p.state, PlayState::Ended);
         p.apply(&Command::Play, secs(t0, 300)).unwrap();
         assert_eq!(p.position(secs(t0, 300)), 0);
+    }
+
+    #[test]
+    fn restore_quirks_drop_first_seek_and_autoplay() {
+        let t0 = Instant::now();
+        let mut p = Player::new(t0);
+        p.restore_quirks = true;
+        let cmd = Command::SetQueue {
+            ids: vec!["s1".into()],
+            start: 0,
+            play: false,
+        };
+        p.apply(&cmd, t0).unwrap();
+        p.apply(&Command::Seek { ms: 60000 }, t0).unwrap();
+        assert_eq!(p.position(t0), 0);
+        assert_eq!(p.state, PlayState::Playing);
+        p.apply(&Command::Seek { ms: 60000 }, t0).unwrap();
+        assert_eq!(p.position(t0), 60000);
+        p.apply(&Command::Pause, t0).unwrap();
+        assert_eq!(p.state, PlayState::Paused);
     }
 }
