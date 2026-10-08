@@ -1,11 +1,41 @@
 //! Entry point: CLI -> launch config -> Backend -> eframe.
 use clap::Parser;
-use presto::{app::App, backend::Backend, cli::Cli, launch};
+use presto::{app::App, backend::Backend, cli::Cli, ctl::{self, CtlPaths}, launch};
 use presto_core::paths::Paths;
 use std::process::exit;
 
 fn main() -> eframe::Result {
     let cli = Cli::parse();
+
+    // Read XDG_RUNTIME_DIR early; needed for both CLI and GUI paths
+    let Some(rt) = std::env::var_os("XDG_RUNTIME_DIR") else {
+        eprintln!("XDG_RUNTIME_DIR is not set");
+        exit(2)
+    };
+    let p = CtlPaths::new(&std::path::Path::new(&rt), cli.demo);
+
+    // If a subcommand was specified, run it as CLI (no Backend, no GUI)
+    if let Some(ref sub) = cli.cmd {
+        exit(ctl::client::run(&p, sub));
+    }
+
+    // GUI path: acquire exclusive lock before starting the engine
+    let guard = match ctl::lock(&p) {
+        Ok(g) => g,
+        Err(ctl::LockError::Held) => {
+            // Another instance is running; try to raise it
+            exit(match ctl::client::request(&p, presto_ipc::ctl::CtlOp::Raise) {
+                Ok(r) if r.ok => 0,
+                _ => 1,
+            })
+        }
+        Err(e) => {
+            eprintln!("presto: {}", e);
+            exit(1)
+        }
+    };
+
+    // Start the backend and GUI
     let cfg = if cli.demo {
         let mock = std::env::current_exe()
             .ok()
@@ -16,10 +46,6 @@ fn main() -> eframe::Result {
                 eprintln!("{e}");
                 exit(2)
             });
-        let Some(rt) = std::env::var_os("XDG_RUNTIME_DIR") else {
-            eprintln!("XDG_RUNTIME_DIR is not set");
-            exit(2)
-        };
         launch::demo_config(&Paths::from_env().state, rt.as_ref(), mock, launch::demo_extra(&cli.faults))
     } else {
         launch::real_config(&cli.engine_dir)
@@ -39,5 +65,26 @@ fn main() -> eframe::Result {
         persist_window: !demo,
         ..Default::default()
     };
-    eframe::run_native("presto", options, Box::new(move |cc| Ok(Box::new(App::new(backend, demo, &cc.egui_ctx)))))
+    eframe::run_native(
+        "presto",
+        options,
+        Box::new(move |cc| {
+            // Start the control socket server before handing off to the UI
+            let ctl = backend.control(cc.egui_ctx.clone());
+            let listener = {
+                let _g = backend.enter();
+                match ctl::bind(&guard) {
+                    Ok(l) => l,
+                    Err(e) => {
+                        eprintln!("presto: control socket bind failed: {}", e);
+                        // Continue anyway; the app still works without the CLI
+                        return Ok(Box::new(App::new(backend, demo, &cc.egui_ctx)));
+                    }
+                }
+            };
+            backend.spawn(ctl::serve(listener, backend.state(), ctl));
+            // desktop: Plan 06-04 (MPRIS start here)
+            Ok(Box::new(App::new(backend, demo, &cc.egui_ctx)))
+        }),
+    )
 }
