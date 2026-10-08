@@ -1,0 +1,38 @@
+presto-core: spawned engine pid 983397 (attempt 0), log /home/mcmanusiang/.local/state/presto/logs/engine-1791458078-0.log
+presto-core: engine failed: engine closed the connection: EOF
+presto-core: spawned engine pid 983914 (attempt 1), log /home/mcmanusiang/.local/state/presto/logs/engine-1791458148-1.log
+presto-core: restore: SetVolume { volume: 0.0 } -> ok, state Playing at 0 ms, volume 0
+presto-core: restore: SetQueue { ids: ["6781080934", "1517099633", "1673536443"], start: 1, play: false } -> ok, state Playing at 0 ms, volume 0
+presto-core: restore: SetVolume { volume: 0.0 } -> ok, state Playing at 0 ms, volume 0
+presto-core: restore: Seek { ms: 76000 } -> ok, state Playing at 0 ms, volume 0
+presto-core: restore: SetShuffle { on: false } -> ok, state Loading at 76000 ms, volume 0
+presto-core: restore: SetRepeat { mode: Off } -> ok, state Loading at 76000 ms, volume 0
+presto-core: restore: Play -> ok, state Playing at 76000 ms, volume 0
+presto-core: restore: SetVolume { volume: 0.5 } -> ok, state Playing at 78000 ms, volume 0
+presto-core: engine failed: engine closed the connection: EOF
+presto-core: spawned engine pid 984391 (attempt 2), log /home/mcmanusiang/.local/state/presto/logs/engine-1791458312-2.log
+presto-core: restore: SetVolume { volume: 0.0 } -> ok, state Paused at 0 ms, volume 0
+presto-core: restore: SetQueue { ids: ["6781080934", "1517099633", "1673536443"], start: 1, play: false } -> ok, state Playing at 0 ms, volume 0
+presto-core: restore: SetVolume { volume: 0.0 } -> ok, state Playing at 0 ms, volume 0
+presto-core: restore: Seek { ms: 232000 } -> ok, state Playing at 0 ms, volume 0
+presto-core: restore: SetShuffle { on: false } -> ok, state Loading at 232000 ms, volume 0
+presto-core: restore: SetRepeat { mode: Off } -> ok, state Loading at 232000 ms, volume 0
+presto-core: restore: Pause -> ok, state Playing at 232000 ms, volume 0
+presto-core: restore: Pause -> ok, state Paused at 232000 ms, volume 0
+presto-core: restore: SetVolume { volume: 0.5 } -> ok, state Paused at 232000 ms, volume 0
+presto-core: engine failed: engine closed the connection: EOF
+presto-core: spawned engine pid 984875 (attempt 3), log /home/mcmanusiang/.local/state/presto/logs/engine-1791458484-3.log
+presto-core: restore: SetVolume { volume: 0.0 } -> ok, state Playing at 0 ms, volume 0
+presto-core: restore: SetQueue { ids: ["6781080934", "1517099633", "1673536443"], start: 2, play: false } -> ok, state Playing at 0 ms, volume 0
+presto-core: restore: SetVolume { volume: 0.0 } -> ok, state Playing at 0 ms, volume 0
+presto-core: restore: Seek { ms: 4000 } -> err IpcError { kind: Timeout, message: "engine did not answer in time" }, state Playing at 1000 ms, volume 0
+presto-core: restore step failed: IpcError { kind: Timeout, message: "engine did not answer in time" }
+presto-core: restore: SetVolume { volume: 0.5 } -> ok, state Playing at 1000 ms, volume 0
+presto-core: engine failed: engine closed the connection: EOF
+presto-core: spawned engine pid 985041 (attempt 4), log /home/mcmanusiang/.local/state/presto/logs/engine-1791458510-4.log
+presto-core: restore: SetVolume { volume: 0.0 } -> ok, state Playing at 0 ms, volume 0
+presto-core: restore: SetQueue { ids: ["6781080934", "1517099633", "1673536443"], start: 2, play: false } -> ok, state Playing at 0 ms, volume 0
+presto-core: restore: SetVolume { volume: 0.0 } -> ok, state Playing at 0 ms, volume 0
+presto-core: restore: Seek { ms: 1000 } -> err IpcError { kind: Timeout, message: "engine did not answer in time" }, state Playing at 1000 ms, volume 0
+presto-core: restore step failed: IpcError { kind: Timeout, message: "engine did not answer in time" }
+presto-core: restore: SetVolume { volume: 0.5 } -> ok, state Playing at 1000 ms, volume 0
