@@ -77,8 +77,8 @@ Plans:
 - [x] 03-09-PLAN.md: Gap: mock autoplay-after-load, restore waits out loading and holds paused (wave 1)
 - [x] 03-10-PLAN.md: Gap: live re-run of C2, C3, D; mark CORE-01 on pass (wave 2)
 - [x] 03-11-PLAN.md: Gap: mute engine during load restore, mock audibility tests (wave 1)
-- [ ] 03-12-PLAN.md: Gap: live re-run of C1, C2, C3, D; mark CORE-01 on pass (wave 2)
-- [ ] 03-13-PLAN.md: Gap: diagnose live restore Seek timeout, mock unanswered seek, RED tests (wave 1)
+- [x] 03-12-PLAN.md: Gap: live re-run of C1, C2, C3, D; mark CORE-01 on pass (wave 2)
+- [x] 03-13-PLAN.md: Gap: diagnose live restore Seek timeout, mock unanswered seek, RED tests (wave 1)
 - [ ] 03-14-PLAN.md: Gap: restore survives a Seek error, Pause before unmute on every exit (wave 2)
 - [ ] 03-15-PLAN.md: Gap: live re-run of C1, C2, C3 at track start, D (wave 3)
 

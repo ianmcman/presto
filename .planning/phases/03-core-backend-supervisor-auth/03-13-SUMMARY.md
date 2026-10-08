@@ -20,3 +20,15 @@ Muted live probe (volume 0, three kill -9 runs, log in `03-13-probe-stderr.log`)
 Cause class: `small-target`. A Seek to a target within a few seconds of the track start is never answered on a freshly loaded item; a large target is.
 
 Fix in 03-14: a Seek step error must not end the restore (verify retries the seek once state leaves Loading), restores at or below 2000 ms skip the Seek, and every exit that must end paused sends Pause and unmutes only when the player is not Playing or Loading. `bridge.js` is unchanged.
+
+## Result
+
+- Mock `--seek-hang`: the first Seek after each SetQueue gets no reply and no effect (`mock: seek not answered`). Commit 63eb9d7.
+- RED tests `seek_hang_crash_restores_position` (audible at 3999 ms, wrong position) and `seek_hang_second_crash_restores_paused` (Playing, expected Paused). Both fail on the current supervisor for the live reason; other recover and mock tests pass.
+- `supervisor.rs` untouched.
+
+## Deviations from Plan
+
+None. P1's own restore skipped nothing; its Seek line appears after the P2 marker because logs trail the kill.
+
+## Self-Check: PASSED
