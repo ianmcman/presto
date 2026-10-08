@@ -68,6 +68,8 @@ struct Restore {
     full: bool,
     resume_allowed: bool,
     verify: Option<Verify>,
+    /// Volume to put back when a load restore ends; the engine is muted while it converges.
+    unmute: Option<f32>,
 }
 
 /// Post-load check that the seek landed and the play state is right (RESEARCH Pitfall 6).
@@ -279,7 +281,7 @@ impl Actor {
         if self.restore.is_none()
             && let Some(snap) = self.take_snapshot()
         {
-            self.restore = Some(Restore { snap, full: false, resume_allowed: true, verify: None });
+            self.restore = Some(Restore { snap, full: false, resume_allowed: true, verify: None, unmute: None });
         }
     }
 
@@ -341,15 +343,14 @@ impl Actor {
                 Outcome::Ok { .. } => "ok".to_string(),
                 Outcome::Err { error } => format!("err {error:?}"),
             };
-            eprintln!("presto-core: restore: {cmd:?} -> {res}, state {:?} at {} ms", st.player.state, st.player.position_ms);
+            eprintln!("presto-core: restore: {cmd:?} -> {res}, state {:?} at {} ms, volume {}", st.player.state, st.player.position_ms, st.player.volume);
         }
         match o {
             Outcome::Ok { .. } => {
                 let ids_match = self.restore.as_ref().is_none_or(|r| self.state_tx.borrow().queue.ids() == r.snap.ids);
                 if load && !ids_match {
                     eprintln!("presto-core: restore: queue did not load as expected");
-                    self.restore = None;
-                    self.steps = None;
+                    self.end_restore();
                 }
             }
             Outcome::Err { error } => {
@@ -361,9 +362,24 @@ impl Actor {
                         r.full = true;
                     }
                 } else {
-                    self.restore = None;
-                    self.steps = None;
+                    self.end_restore();
                 }
+            }
+        }
+    }
+
+    /// Ends a restore. A load restore first sends the snapshot volume back; the next pump clears it.
+    fn end_restore(&mut self) {
+        match self.restore.as_mut().and_then(|r| r.unmute.take()) {
+            Some(volume) => {
+                if let Some(r) = &mut self.restore {
+                    r.verify = None;
+                }
+                self.steps = Some(VecDeque::from([Command::SetVolume { volume }]));
+            }
+            None => {
+                self.restore = None;
+                self.steps = None;
             }
         }
     }
@@ -376,13 +392,15 @@ impl Actor {
         let resume = s.was_playing && r.resume_allowed;
         let mut v = VecDeque::new();
         if load {
+            // MusicKit can play at 0 ms right after load, so stay muted until the restore is confirmed.
+            v.push_back(Command::SetVolume { volume: 0.0 });
             v.push_back(Command::SetQueue { ids: s.ids.clone(), start: s.index, play: false });
+            v.push_back(Command::SetVolume { volume: 0.0 });
             if s.position_ms > 0 {
                 v.push_back(Command::Seek { ms: s.position_ms });
             }
             v.push_back(Command::SetShuffle { on: s.shuffle });
             v.push_back(Command::SetRepeat { mode: s.repeat });
-            v.push_back(Command::SetVolume { volume: s.volume });
             // MusicKit may autoplay after a seek on a fresh load, so always end explicitly (D-01, D-04).
             v.push_back(if resume { Command::Play } else { Command::Pause });
         } else if resume && !playing {
@@ -406,6 +424,7 @@ impl Actor {
         }
         if let Some(r) = &mut self.restore {
             r.verify = verify;
+            r.unmute = load.then_some(r.snap.volume);
         }
         self.steps = Some(v);
     }
@@ -491,10 +510,7 @@ impl Actor {
                 None => match self.verify_step() {
                     VerifyStep::Wait => break,
                     VerifyStep::Retry(v) => self.steps = Some(v),
-                    VerifyStep::Done => {
-                        self.restore = None;
-                        self.steps = None;
-                    }
+                    VerifyStep::Done => self.end_restore(),
                 },
             }
         }
@@ -523,7 +539,7 @@ impl Actor {
         self.same_queue_crashes = if Some(k) == self.last_crash_key { self.same_queue_crashes + 1 } else { 1 };
         self.last_crash_key = Some(k);
         let resume_allowed = self.same_queue_crashes < 2;
-        self.restore = Some(Restore { snap, full: true, resume_allowed, verify: None });
+        self.restore = Some(Restore { snap, full: true, resume_allowed, verify: None, unmute: None });
     }
 
     async fn run(mut self) {
@@ -537,7 +553,7 @@ impl Actor {
                     if self.restore.is_none()
                         && let Some(snap) = self.take_snapshot()
                     {
-                        self.restore = Some(Restore { snap, full: true, resume_allowed: true, verify: None });
+                        self.restore = Some(Restore { snap, full: true, resume_allowed: true, verify: None, unmute: None });
                     }
                     Wake::Restart
                 }
