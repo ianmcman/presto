@@ -14,6 +14,7 @@ Full-catalog Apple Music playback and library browsing from a fast native Linux 
 
 - Spotifast seams documented (`docs/SPOTIFAST-SEAMS.md`). Validated in Phase 1: IPC Contract and Mock Engine
 - IPC wire contract, version handshake, token-name guard and fault-injecting mock engine. Validated in Phase 1: IPC Contract and Mock Engine
+- Data layer: ApiClient, SQLite page cache, 500 MB artwork cache (https/mzstatic only, 10 MB cap), cache-then-revalidate paging, search, offline serving, sign-out wipe. Validated in Phase 4: Data Layer and Cache
 - Engine feasibility spike: MusicKit reachable, sign-in persists, full-track playback with seek, library API proxied, events streamed; go on castlabs ECS v44.5.1+wvcus. Validated in Phase 2: Engine Feasibility Spike Gate
 
 ### Active
@@ -84,4 +85,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-08 after Phase 2*
+*Last updated: 2026-10-08 after Phase 4*
