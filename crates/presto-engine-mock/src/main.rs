@@ -38,11 +38,16 @@ struct Args {
     /// Test only: mimic MusicKit load (drops Play/Pause and first seek while loading, autoplays after load and seek).
     #[arg(long)]
     restore_quirks: bool,
+    /// Test only: the first Seek after each SetQueue gets no reply and has no effect (03-12 live C3).
+    #[arg(long)]
+    seek_hang: bool,
 }
 
 struct Engine {
     player: Player,
     faults: Faults,
+    seek_hang: bool,
+    seek_unanswered: bool,
 }
 
 fn evts(events: Vec<Event>) -> Vec<Frame> {
@@ -102,8 +107,19 @@ impl Engine {
                     },
                 }]
             }
+            Frame::Cmd {
+                cmd: Command::Seek { .. },
+                ..
+            } if self.seek_unanswered => {
+                self.seek_unanswered = false;
+                eprintln!("mock: seek not answered");
+                vec![]
+            }
             Frame::Cmd { id, cmd } => match self.audible_log(now, |p| p.apply(&cmd, now)) {
                 Ok(events) => {
+                    if self.seek_hang && matches!(cmd, Command::SetQueue { .. }) {
+                        self.seek_unanswered = true;
+                    }
                     let mut out = evts(events);
                     out.push(Frame::Res {
                         id,
@@ -195,6 +211,8 @@ async fn main() {
     let mut engine = Engine {
         player: Player::new(Instant::now()),
         faults: Faults::default(),
+        seek_hang: args.seek_hang,
+        seek_unanswered: false,
     };
     engine.player.restore_quirks = args.restore_quirks;
     let signed_out = args.auth == "signed_out";

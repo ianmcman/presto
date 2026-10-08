@@ -5,6 +5,8 @@ use presto_ipc::{Command, ErrorKind, FaultSpec, Outcome, PlayState, RepeatMode};
 use std::time::Duration;
 
 const T: Duration = Duration::from_secs(15);
+/// The Seek timeout is the fixed 5 s command timeout; verify adds about 6 s per restore.
+const SLOW: Duration = Duration::from_secs(40);
 
 fn ready(s: &presto_core::CoreState) -> bool {
     s.engine == EngineStatus::Ready
@@ -214,6 +216,39 @@ async fn quirky_second_crash_restores_paused() {
     assert_eq!(s.player.state, PlayState::Paused);
     tokio::time::sleep(Duration::from_millis(1500)).await;
     assert_eq!(rx.borrow().player.state, PlayState::Paused);
+    assert!(audible_at(&s).is_empty(), "{:?}", audible_at(&s));
+    r.core.shutdown().await;
+}
+
+/// Restarted engines mimic the live C3 failure: the first Seek after a load is never answered.
+fn seek_hang(n: u32) -> Vec<String> {
+    if n == 0 { vec![] } else { vec!["--restore-quirks".into(), "--seek-hang".into()] }
+}
+
+#[tokio::test]
+async fn seek_hang_crash_restores_position() {
+    let (r, mut rx) = playing_rig_with(seek_hang).await;
+    r.core.mock(FaultSpec::Crash { after_ms: None }).await;
+    let s = wait_for(&mut rx, SLOW, |s| s.restarts == 1 && ready(s)).await;
+    let first = audible_at(&s).first().copied().expect("audible line");
+    assert!(first >= 28000, "audible at {first} ms");
+    assert_eq!(s.queue.index, Some(1));
+    assert_eq!(s.player.state, PlayState::Playing);
+    assert!((30000..=40000).contains(&s.player.position_ms), "{}", s.player.position_ms);
+    r.core.shutdown().await;
+}
+
+#[tokio::test]
+async fn seek_hang_second_crash_restores_paused() {
+    let (r, mut rx) = playing_rig_with(seek_hang).await;
+    r.core.mock(FaultSpec::Crash { after_ms: None }).await;
+    wait_for(&mut rx, SLOW, |s| s.restarts == 1 && ready(s)).await;
+    r.core.mock(FaultSpec::Crash { after_ms: None }).await;
+    let s = wait_for(&mut rx, SLOW, |s| s.restarts == 2 && ready(s)).await;
+    assert_eq!(s.player.state, PlayState::Paused);
+    tokio::time::sleep(Duration::from_millis(1500)).await;
+    let s = rx.borrow().clone();
+    assert_eq!(s.player.state, PlayState::Paused);
     assert!(audible_at(&s).is_empty(), "{:?}", audible_at(&s));
     r.core.shutdown().await;
 }
