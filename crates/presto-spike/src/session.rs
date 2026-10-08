@@ -130,6 +130,7 @@ impl Session {
                 "auth"
             }
             Event::Error { .. } => "error",
+            Event::BridgeReady { .. } => "bridge_ready",
         };
         *self.counts.entry(name).or_insert(0) += 1;
     }

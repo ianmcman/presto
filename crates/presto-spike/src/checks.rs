@@ -150,6 +150,7 @@ async fn check_playback(s: &mut Session, song: &SongArgs, min_play: u64, seek: u
         .call(Command::SetQueue {
             ids: vec![id.clone()],
             start: 0,
+            play: true,
         })
         .await?;
     if let Err(e) = ok_data(o) {
@@ -391,6 +392,7 @@ pub async fn measure(cx: &Ctx, song: &SongArgs, play: u64, interval: u64, settle
         s.call(Command::SetQueue {
             ids: vec![id],
             start: 0,
+            play: true,
         })
         .await?,
     )?;

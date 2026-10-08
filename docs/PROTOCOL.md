@@ -20,13 +20,14 @@ Presto never holds Apple credentials. The engine adds authentication inside the 
 
 The engine sends `hello` first. Presto replies with its own `hello`.
 
-Protocol version is `1.0`. A minor mismatch is tolerated and new features are gated by capabilities. A major mismatch is a hard error with a message naming both versions; the side that detects it closes the connection (the mock exits with code 2).
+Protocol version is `1.1`. 1.1 added `bridge_ready`, `show_window`, the `set_queue` `play` field and the `window` capability. A minor mismatch is tolerated and new features are gated by capabilities. A major mismatch is a hard error with a message naming both versions; the side that detects it closes the connection (the mock exits with code 2).
 
 | Capability | Meaning |
 |---|---|
 | `playback` | engine plays audio and accepts transport commands |
 | `queue` | engine accepts `set_queue` and emits queue events |
 | `api` | engine answers `req` frames |
+| `window` | engine accepts `show_window` |
 | `mock` | engine accepts `mock` frames; real engines never list it |
 
 Presto never sends `mock` frames unless the engine hello lists `mock`.
@@ -47,7 +48,7 @@ Every line is an object with a `t` field.
 | `mock` | presto to engine | `id`, `fault` |
 
 ```json
-{"t":"hello","proto":{"major":1,"minor":0},"role":"engine","capabilities":["playback","queue","api","mock"],"engine":"mock"}
+{"t":"hello","proto":{"major":1,"minor":1},"role":"engine","capabilities":["playback","queue","api","mock"],"engine":"mock"}
 {"t":"cmd","id":1,"cmd":{"type":"play"}}
 {"t":"req","id":2,"req":{"method":"get","path":"/v1/me/library/playlists","query":{"limit":"25"},"body":null}}
 {"t":"res","id":2,"outcome":{"status":"ok","data":{"data":[]}}}
@@ -71,7 +72,8 @@ Tag `type`.
 | `set_volume` | `volume`, 0.0 to 1.0 |
 | `set_shuffle` | `on` |
 | `set_repeat` | `mode`: `off`, `one`, `all` |
-| `set_queue` | `ids`, `start` |
+| `set_queue` | `ids`, `start`, `play` (default true; false loads paused) |
+| `show_window` | `show`; answered by the engine host even before `bridge_ready` |
 
 Every `cmd` gets exactly one `res` with the same `id`. Events caused by a command are sent before its `res`.
 
@@ -110,6 +112,9 @@ Tag `type`.
 | `repeat` | `mode` |
 | `auth` | `state`: `signed_out`, `signing_in`, `signed_in`, `expired` |
 | `error` | `error` |
+| `bridge_ready` | `version`, `capabilities`, `musickit_build` (string or null) |
+
+`bridge_ready` is sent each time the page bridge installs. The bridge's `rev` and `seq` counters restart there, so receivers reset their baselines. Presto queues commands until it arrives and reports drift after 15 s without it.
 
 `progress` is sent about every 500 ms while playing and on every state change; receivers interpolate between events.
 
@@ -138,11 +143,11 @@ Presto sends `ping` every 2 s; the engine answers `pong` with the same `seq`. Th
 
 The mock engine accepts a `mock` frame with `fault`, tagged by `kind`: `none`, `hang`, `crash` (`after_ms`), `auth_expired`, `slow` (`delay_ms`).
 
-CLI: `--fault`, repeatable, syntax `none|hang|crash|crash@<ms>|auth_expired|slow|slow=<ms>`. `slow` defaults to 3000 ms. Startup faults take effect right after the handshake.
+CLI: `--fault`, repeatable, syntax `none|hang|crash|crash@<ms>|auth_expired|slow|slow=<ms>`. `slow` defaults to 3000 ms. Startup faults take effect right after the handshake. `--auth signed_in|signed_out` sets the initial auth state (signed_out rejects `cmd` and `req` with `auth_expired`, except `show_window`). `--bridge-missing` suppresses `bridge_ready` and the initial `auth`. `--bridge-caps <csv>` sets the `bridge_ready` capabilities (default `playback,queue,api`).
 
 - `hang`: drops every outbound frame (replies, events, pongs) while still reading. The socket stays open. Only a `mock` `none` frame clears it.
 - `crash`: exits with status 101, immediately or after `after_ms`.
-- `auth_expired`: emits `auth` `expired`. Every `cmd` and `req` then gets `err` `auth_expired` until cleared. `none` then emits `auth` `signed_in`.
+- `auth_expired`: emits `auth` `expired`. Every `cmd` and `req` then gets `err` `auth_expired` until cleared. `none` then emits `auth` `signed_in`, also after a signed_out start.
 - `slow`: delays every `res` by `delay_ms`; `evt` and `pong` stay on time.
 
 `mock` frames are acked with `res` immediately and are never delayed.

@@ -323,6 +323,11 @@ expression: "schemars::schema_for!(presto_ipc::Frame)"
                 "type": "string"
               }
             },
+            "play": {
+              "description": "false: load paused (restore after a restart). Omitted = true.",
+              "type": "boolean",
+              "default": true
+            },
             "start": {
               "type": "integer",
               "format": "uint32",
@@ -337,6 +342,23 @@ expression: "schemars::schema_for!(presto_ipc::Frame)"
             "type",
             "ids",
             "start"
+          ]
+        },
+        {
+          "description": "Handled by the engine host, never by the page; works before bridge_ready.",
+          "type": "object",
+          "properties": {
+            "show": {
+              "type": "boolean"
+            },
+            "type": {
+              "type": "string",
+              "const": "show_window"
+            }
+          },
+          "required": [
+            "type",
+            "show"
           ]
         }
       ]
@@ -634,6 +656,36 @@ expression: "schemars::schema_for!(presto_ipc::Frame)"
           "required": [
             "type",
             "error"
+          ]
+        },
+        {
+          "description": "Sent each time the page bridge installs (every page load). Engines reset queue rev and seq at this point.",
+          "type": "object",
+          "properties": {
+            "capabilities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "musickit_build": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "bridge_ready"
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "version",
+            "capabilities"
           ]
         }
       ]

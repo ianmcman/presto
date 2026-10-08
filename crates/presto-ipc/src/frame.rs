@@ -15,7 +15,7 @@ impl fmt::Display for ProtoVersion {
     }
 }
 
-pub const PROTO: ProtoVersion = ProtoVersion { major: 1, minor: 0 };
+pub const PROTO: ProtoVersion = ProtoVersion { major: 1, minor: 1 };
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -28,6 +28,8 @@ pub mod caps {
     pub const PLAYBACK: &str = "playback";
     pub const QUEUE: &str = "queue";
     pub const API: &str = "api";
+    /// engine accepts show_window
+    pub const WINDOW: &str = "window";
     pub const MOCK: &str = "mock";
 }
 

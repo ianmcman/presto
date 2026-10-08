@@ -32,5 +32,16 @@ pub enum Command {
     SetQueue {
         ids: Vec<String>,
         start: u32,
+        /// false: load paused (restore after a restart). Omitted = true.
+        #[serde(default = "yes")]
+        play: bool,
     },
+    /// Handled by the engine host, never by the page; works before bridge_ready.
+    ShowWindow {
+        show: bool,
+    },
+}
+
+fn yes() -> bool {
+    true
 }

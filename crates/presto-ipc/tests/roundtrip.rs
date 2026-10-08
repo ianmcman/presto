@@ -27,7 +27,7 @@ fn hello_shape() {
     ));
     assert_eq!(
         serde_json::to_value(&f).unwrap(),
-        json!({"t":"hello","proto":{"major":1,"minor":0},"role":"engine","capabilities":["playback"],"engine":"x 1"})
+        json!({"t":"hello","proto":{"major":1,"minor":1},"role":"engine","capabilities":["playback"],"engine":"x 1"})
     );
 }
 
@@ -78,7 +78,9 @@ fn all_variants_roundtrip() {
         Command::SetQueue {
             ids: vec!["a".into()],
             start: 0,
+            play: true,
         },
+        Command::ShowWindow { show: false },
     ];
     let errs = vec![
         ErrorKind::Timeout,
@@ -121,6 +123,16 @@ fn all_variants_roundtrip() {
         },
         Event::Error {
             error: IpcError::new(ErrorKind::Internal, "x"),
+        },
+        Event::BridgeReady {
+            version: "1.1.0".into(),
+            capabilities: vec!["api".into()],
+            musickit_build: Some("3.x".into()),
+        },
+        Event::BridgeReady {
+            version: "1.1.0".into(),
+            capabilities: vec![],
+            musickit_build: None,
         },
     ];
     let faults = vec![
@@ -172,7 +184,7 @@ fn version_check() {
     let mut h = Hello::new(Role::Engine, &[], None);
     h.proto = ProtoVersion { major: 2, minor: 0 };
     let e = h.check(PROTO).unwrap_err().to_string();
-    assert!(e.contains("1.0") && e.contains("2.0"), "{e}");
+    assert!(e.contains("1.1") && e.contains("2.0"), "{e}");
     h.proto = ProtoVersion { major: 1, minor: 9 };
     assert!(h.check(PROTO).is_ok());
 }
@@ -209,7 +221,8 @@ fn kinds() {
     assert_eq!(
         cmd(Command::SetQueue {
             ids: vec![],
-            start: 0
+            start: 0,
+            play: true,
         })
         .kind(),
         Some(Kind::SetQueue)
@@ -251,4 +264,17 @@ fn kinds() {
     ] {
         assert_eq!(f.kind(), None);
     }
+}
+
+#[test]
+fn set_queue_play_defaults_true() {
+    let c: Command = serde_json::from_str(r#"{"type":"set_queue","ids":["a"],"start":0}"#).unwrap();
+    assert_eq!(
+        c,
+        Command::SetQueue {
+            ids: vec!["a".into()],
+            start: 0,
+            play: true
+        }
+    );
 }

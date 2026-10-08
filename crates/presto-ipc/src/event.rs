@@ -69,4 +69,10 @@ pub enum Event {
     Error {
         error: IpcError,
     },
+    /// Sent each time the page bridge installs (every page load). Engines reset queue rev and seq at this point.
+    BridgeReady {
+        version: String,
+        capabilities: Vec<String>,
+        musickit_build: Option<String>,
+    },
 }
