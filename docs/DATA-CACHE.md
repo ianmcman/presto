@@ -18,3 +18,7 @@ Wipe: a mid-session sign-out (same engine run) and Clear cache wipe pages, searc
 Known gap: re-authenticating as a different Apple ID in the same storefront after an expiry shows the previous account's cache until each view revalidates, because Presto holds no account identifier (no IPC change by design).
 
 PKG-02: Apple's terms may bear on persisting API responses and artwork; not yet reviewed.
+
+## Detail and track lists
+
+`ViewKey::Detail` (album, playlist, artist head with inline lists, not paged) and `ViewKey::Tracks` (paged track list) go through the same cache, TTL, offline and retry rules as library views. Paths carry a literal `{sf}` that `DataHandle` replaces with the cached storefront when building the request; with no storefront known the load fails as `Internal`. Tracks page at 100 (unverified live; 05-11 checks).
