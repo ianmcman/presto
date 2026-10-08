@@ -49,7 +49,16 @@ if (!args.keepMediaSession) sw('disable-features', 'MediaSessionService,Hardware
 let win = null;
 let bridgeReady = false;
 const sock = net.createConnection(args.socket);
-const send = (obj) => { if (!sock.destroyed) sock.write(JSON.stringify(obj) + '\n'); };
+const send = (obj) => {
+  if (!sock.writable) return; // peer gone: dropping is fine, we are quitting
+  try { sock.write(JSON.stringify(obj) + '\n', () => {}); } catch (e) { log('send failed', e.message); }
+};
+sock.on('error', () => {}); // logged and handled by the quit hook below
+// Never show Electron's modal error dialog: it blocks app.quit and cookie flush.
+process.on('uncaughtException', (e) => {
+  log('uncaught', e?.code ?? '', e?.message ?? e);
+  if (e?.code === 'EPIPE') app.quit(); else app.exit(1);
+});
 const unavailable = (id) => send({ t: 'res', id, outcome: { status: 'err', error: { kind: { code: 'unavailable' }, message: 'bridge not ready' } } });
 
 sock.on('connect', () => send({
