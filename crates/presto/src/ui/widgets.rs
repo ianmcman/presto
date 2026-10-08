@@ -171,10 +171,10 @@ pub fn track_row(ui: &mut Ui, pal: &Palette, id: Id, row: &TrackRow) -> RowEvent
     }
     if let Some((art, seed)) = row.art {
         let r = egui::Rect::from_min_size(egui::pos2(x, cy - theme::ROW_ART / 2.0), vec2(theme::ROW_ART, theme::ROW_ART));
-        ui.scope_builder(egui::UiBuilder::new().max_rect(r), |ui| {
-            ui.multiply_opacity(a);
-            artwork(ui, pal, art, seed, theme::ROW_ART, false);
-        });
+        // new_child, not scope_builder: the latter moves the parent cursor and shortens the row.
+        let mut c = ui.new_child(egui::UiBuilder::new().max_rect(r));
+        c.multiply_opacity(a);
+        artwork(&mut c, pal, art, seed, theme::ROW_ART, false);
         x += theme::ROW_ART + theme::SM;
     }
     let mut right = rect.right() - theme::SM;
@@ -212,9 +212,8 @@ pub fn track_row(ui: &mut Ui, pal: &Palette, id: Id, row: &TrackRow) -> RowEvent
     }
     if row.unavailable {
         let br = egui::Rect::from_min_size(egui::pos2(x + title_w + theme::SM, cy - 10.0), vec2(badge_w - theme::SM, 20.0));
-        ui.scope_builder(egui::UiBuilder::new().max_rect(br), |ui| {
-            badge(ui, pal, &tr("Unavailable")).on_hover_text(tr(REASON));
-        });
+        let mut c = ui.new_child(egui::UiBuilder::new().max_rect(br));
+        badge(&mut c, pal, &tr("Unavailable")).on_hover_text(tr(REASON));
     }
     if has_menu && (hovered || ui.rect_contains_pointer(menu_rect)) {
         let b = ui.interact(menu_rect, id.with("menu"), Sense::click());
