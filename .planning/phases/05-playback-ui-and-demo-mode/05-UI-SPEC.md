@@ -77,14 +77,14 @@ Rules: row titles use Body 400; the now-playing title uses Body at 600. Time rea
 
 ## Color
 
-Palette source: Apple Music red for the accent (#FA243C) and Apple's iOS/macOS system dark colors (systemBackground, secondarySystemBackground, tertiarySystemBackground, systemGray, systemRed, systemOrange) for the rest. Values are from memory of Apple's HIG, not fetched; verify against Apple's published values. fastframe-theme still wins where it supplies a value.
+Palette source: Apple's iOS/macOS dark system colors, as listed in sarunw.com/posts/dark-color-cheat-sheet (systemBackground #000000, secondarySystemBackground #1C1C1E, tertiarySystemBackground #2C2C2E, label #FFFFFF, systemRed #FF453A, systemOrange #FF9F0A). Text secondary is secondaryLabel (#EBEBF5 at 60%) composited over #1C1C1E, which gives #98989F. Apple's own HIG page does not publish the numbers, so these are third-party reproductions. Accent #FA243C is a widely used Apple Music red, not an Apple-published value; other sources list #FA233B and #FA2D48. fastframe-theme still wins where it supplies a value.
 
 | Role | Value | Usage |
 |------|-------|-------|
 | Dominant (60%) | #000000 | Central panel, page background |
 | Secondary (30%) | #1C1C1E | Sidebar, player bar, queue panel, cards, hovered rows (#2C2C2E) |
 | Text primary | #FFFFFF | Titles, body |
-| Text secondary | #98989D | Artist, timestamps, disabled-looking metadata |
+| Text secondary | #98989F | Artist, timestamps, disabled-looking metadata |
 | Accent (10%) | #FA243C | See list below |
 | Destructive | #FF453A | Destructive actions and error toasts only |
 | Warning | #FF9F0A | Offline/rate-limit banners, Unavailable badge text |
