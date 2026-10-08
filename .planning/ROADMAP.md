@@ -8,7 +8,7 @@ Fix the engine-neutral IPC contract and a mock engine first, then run the engine
 
 - [ ] **Phase 1: IPC Contract and Mock Engine** - Versioned JSON protocol, token-free schema, mock engine with fault injection, spotifast seam notes
 - [x] **Phase 2: Engine Feasibility Spike (GATE)** - Prove full-track playback, persistent sign-in, proxied library calls and events from a hidden Widevine engine; stop for approval (completed 2026-10-08)
-- [x] **Phase 3: Core Backend, Supervisor, Auth** - Engine supervision and recovery, runtime bridge handshake, queue mirror, sign-in and re-auth (completed 2026-10-08)
+- [ ] **Phase 3: Core Backend, Supervisor, Auth** - Engine supervision and recovery, runtime bridge handshake, queue mirror, sign-in and re-auth
 - [ ] **Phase 4: Data Layer and Cache** - Library, search, home, storefront, error states, disk caches
 - [ ] **Phase 5: Playback UI and Demo Mode** - Ported egui views and playback controls, `presto --demo`
 - [ ] **Phase 6: Desktop Integration** - MPRIS, media keys, CLI
@@ -123,7 +123,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. IPC Contract and Mock Engine | 0/4 | Not started | - |
 | 2. Engine Feasibility Spike (GATE) | 6/6 | Complete   | 2026-10-08 |
-| 3. Core Backend, Supervisor, Auth | 6/6 | Complete   | 2026-10-08 |
+| 3. Core Backend, Supervisor, Auth | 6/6 | Gaps found | - |
 | 4. Data Layer and Cache | 0/TBD | Not started | - |
 | 5. Playback UI and Demo Mode | 0/TBD | Not started | - |
 | 6. Desktop Integration | 0/TBD | Not started | - |
