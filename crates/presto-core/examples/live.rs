@@ -4,6 +4,8 @@
 //!
 //! cargo run -p presto-core --example live -- [--engine-dir DIR] [--state DIR] [--show]
 //!
+//! `get` output is cut at 400 chars; set LIVE_MAX to raise it.
+//!
 //! Stdin commands: play, pause, next, prev, seek <ms>, queue <id,id,...> [start],
 //! vol <0..1>, get <path[?k=v&...]>, probe (D-08 live API probe), signin, restart, pids, quit.
 //! CoreState is printed as one JSON line per change; command outcomes are prefixed `> `.
@@ -60,7 +62,7 @@ async fn run(core: &CoreHandle, pidfile: &std::path::Path, line: &str) -> bool {
                     req.query.insert(k.into(), v.into());
                 }
                 let out = core.request(req).await;
-                show(&out, 400);
+                show(&out, std::env::var("LIVE_MAX").ok().and_then(|v| v.parse().ok()).unwrap_or(400));
                 return true;
             }
             None => return usage(),
