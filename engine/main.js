@@ -2,11 +2,14 @@
 // All logging goes to stderr; stdout stays silent.
 const fs = require('fs');
 const net = require('net');
+const os = require('os');
 const path = require('path');
 const readline = require('readline');
 const { app, BrowserWindow, ipcMain, session, components } = require('electron');
 
 const { allowed, safe, PERMISSIONS } = require('./guard');
+const { resolveBridge } = require('./bridge-path');
+const { windowAction } = require('./window-policy');
 
 const log = (...a) => console.error('presto-engine', ...a);
 
@@ -29,6 +32,9 @@ if (!args.socket || !args.profile) {
   process.exit(2);
 }
 
+const BRIDGE = resolveBridge({ env: process.env, home: os.homedir(), dir: __dirname, exists: fs.existsSync });
+log('bridge', BRIDGE);
+
 // --- profile and Chromium switches (before ready) ---
 fs.mkdirSync(args.profile, { recursive: true, mode: 0o700 });
 fs.chmodSync(args.profile, 0o700);
@@ -48,6 +54,8 @@ if (!args.keepMediaSession) sw('disable-features', 'MediaSessionService,Hardware
 // --- socket ---
 let win = null;
 let bridgeReady = false;
+let quitting = false;
+app.on('before-quit', () => { quitting = true; });
 const sock = net.createConnection(args.socket);
 const send = (obj) => {
   if (!sock.writable) return; // peer gone: dropping is fine, we are quitting
@@ -59,17 +67,22 @@ process.on('uncaughtException', (e) => {
   log('uncaught', e?.code ?? '', e?.message ?? e);
   if (e?.code === 'EPIPE') app.quit(); else app.exit(1);
 });
+const ok = (id) => send({ t: 'res', id, outcome: { status: 'ok', data: null } });
+const applyWin = (a) => { if (!win) return; if (a === 'show') { win.show(); win.focus(); } else if (a === 'hide') win.hide(); };
 const unavailable = (id) => send({ t: 'res', id, outcome: { status: 'err', error: { kind: { code: 'unavailable' }, message: 'bridge not ready' } } });
 
 sock.on('connect', () => send({
   t: 'hello',
-  proto: { major: 1, minor: 0 },
+  proto: { major: 1, minor: 1 },
   role: 'engine',
-  capabilities: ['playback', 'queue', 'api'],
+  capabilities: ['playback', 'queue', 'api', 'window'],
   engine: `presto-engine ecs ${process.versions.electron}`,
 }));
 for (const ev of ['end', 'close', 'error']) {
-  sock.on(ev, (e) => { log('socket', ev, e?.message ?? ''); app.quit(); }); // clean quit flushes cookies
+  sock.on(ev, (e) => { // clean quit flushes cookies; hard exit so no orphan outlives presto
+    log('socket', ev, e?.message ?? '');
+    quitting = true; app.quit(); setTimeout(() => app.exit(0), 3000).unref();
+  });
 }
 
 readline.createInterface({ input: sock }).on('line', (line) => {
@@ -84,6 +97,12 @@ readline.createInterface({ input: sock }).on('line', (line) => {
       break;
     case 'ping': send({ t: 'pong', seq: f.seq }); break; // answered here, never via the page
     case 'cmd':
+      if (f.cmd?.type === 'show_window') {
+        if (!win) unavailable(f.id);
+        else { applyWin(windowAction({ type: 'show_window', show: f.cmd.show === true })); ok(f.id); }
+        break;
+      }
+    // fallthrough
     case 'req':
       if (!bridgeReady || !win) unavailable(f.id);
       else win.webContents.send('presto:in', f);
@@ -95,17 +114,20 @@ readline.createInterface({ input: sock }).on('line', (line) => {
 
 // --- window ---
 const trusted = (e) => win && e.sender === win.webContents && allowed(e.senderFrame?.url ?? '');
-ipcMain.on('presto:ready', (e, diag) => {
+ipcMain.on('presto:ready', (e, d) => {
   if (!trusted(e)) return;
+  const version = typeof d?.version === 'string' ? d.version.slice(0, 64) : 'unknown';
+  const capabilities = Array.isArray(d?.capabilities) ? d.capabilities.filter((c) => typeof c === 'string').slice(0, 32) : [];
+  const musickit_build = typeof d?.musickit_build === 'string' ? d.musickit_build.slice(0, 128) : null;
   bridgeReady = true;
-  log('presto-diag ready ' + JSON.stringify(diag));
+  log('presto-diag ready ' + JSON.stringify(d?.diag));
+  send({ t: 'evt', evt: { type: 'bridge_ready', version, capabilities, musickit_build } });
 });
 ipcMain.on('presto:out', (e, frame) => {
   if (!trusted(e)) return;
   if (frame.t === 'evt' && frame.evt?.type === 'auth') {
     log('auth', frame.evt.state);
-    if (frame.evt.state === 'signed_out') win.show(); // sign-in needs a visible window
-    else if (frame.evt.state === 'signed_in') win.hide(); // D-11
+    applyWin(windowAction({ type: 'auth', state: frame.evt.state }));
   }
   send(frame);
 });
@@ -163,6 +185,7 @@ app.whenReady().then(async () => {
       backgroundThrottling: args.allowThrottling,
     },
   });
+  win.on('close', (e) => { if (windowAction({ type: 'close', quitting }) === 'hide') { e.preventDefault(); win.hide(); } });
   const wc = win.webContents;
   wc.on('will-navigate', (e, url) => { if (!allowed(url)) { e.preventDefault(); log('denied navigation', safe(url)); } });
   wc.on('will-redirect', (e, url) => { if (!allowed(url)) { e.preventDefault(); log('denied redirect', safe(url)); } });
@@ -172,8 +195,8 @@ app.whenReady().then(async () => {
     return { action: 'deny' };
   });
 
-  // D-08: read from disk every time so edits apply on the next restart.
-  const inject = () => wc.executeJavaScript(fs.readFileSync(path.join(__dirname, 'bridge.js'), 'utf8'))
+  // D-14: read from disk every time so edits apply on the next restart.
+  const inject = () => wc.executeJavaScript(fs.readFileSync(BRIDGE, 'utf8'))
     .catch((e) => log('inject failed', e.message));
   wc.on('did-finish-load', inject);
   wc.on('did-navigate', inject);
@@ -183,4 +206,4 @@ app.whenReady().then(async () => {
   win.loadURL(args.url, { userAgent: UA });
 });
 
-app.on('window-all-closed', () => app.quit());
+app.on('window-all-closed', () => {}); // close hides (D-07); quit comes from socket close
