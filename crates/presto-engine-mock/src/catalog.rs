@@ -330,7 +330,7 @@ pub fn handle(req: &ApiRequest, cat: &Catalog) -> Outcome {
                 "playlists": {"data": hits("playlists")}});
             let top = query.get("with").is_some_and(|w| w.contains("topResults"));
             if let (true, Some(first)) = (top, results["songs"]["data"].get(0).cloned()) {
-                results["top"] = json!({"data": [first]});
+                results["topResults"] = json!({"data": [first]});
             }
             Outcome::Ok {
                 data: json!({"results": results}),
@@ -470,10 +470,10 @@ mod tests {
             json!(["neon static"])
         );
         let d = get("/v1/catalog/us/search?term=neon&with=topResults");
-        assert_eq!(d["results"]["top"]["data"][0]["id"], "s1");
+        assert_eq!(d["results"]["topResults"]["data"][0]["id"], "s1");
         assert!(
             get("/v1/catalog/us/search?term=neon")["results"]
-                .get("top")
+                .get("topResults")
                 .is_none()
         );
     }
