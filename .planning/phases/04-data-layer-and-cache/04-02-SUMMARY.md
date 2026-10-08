@@ -56,3 +56,5 @@ pub const SORT_SUPPORT: &[(LibKind, &[Sort])] = &[
 ## Deviations
 
 None.
+
+## Self-Check: PASSED
