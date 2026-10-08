@@ -95,7 +95,7 @@ Plans:
 **Plans**: 9 plans
 
 Plans:
-- [ ] 04-01-PLAN.md: Mock rate_limited and signed_out faults, Home/search routes, storefront check, 10k library flag (wave 1)
+- [x] 04-01-PLAN.md: Mock rate_limited and signed_out faults, Home/search routes, storefront check, 10k library flag (wave 1)
 - [ ] 04-02-PLAN.md: Live probe for server-side sort, limits and shapes; user confirms (wave 1)
 - [x] 04-03-PLAN.md: Deps, cache paths and install id, data module tree, UiErrorKind, SQLite store (wave 1)
 - [ ] 04-04-PLAN.md: ApiClient: storefront, fail-fast gating, error mapping (wave 2)

@@ -32,10 +32,10 @@
 
 ### Data
 
-- [ ] **DATA-01**: User can see library playlists, albums, artists and songs, paginated
-- [ ] **DATA-02**: User can search the catalog
-- [ ] **DATA-03**: User can see recently played and a recommendations home
-- [ ] **DATA-04**: Storefront is read from the account and applied to catalog requests
+- [x] **DATA-01**: User can see library playlists, albums, artists and songs, paginated
+- [x] **DATA-02**: User can search the catalog
+- [x] **DATA-03**: User can see recently played and a recommendations home
+- [x] **DATA-04**: Storefront is read from the account and applied to catalog requests
 - [x] **DATA-05**: Proxy errors and rate limits surface as UI states
 - [x] **DATA-06**: Artwork and library snapshots are cached on disk so browsing works offline-ish
 
@@ -107,10 +107,10 @@
 | SPIKE-04 | Phase 2 | Complete |
 | SPIKE-05 | Phase 2 | Complete |
 | SPIKE-06 | Phase 2 | Complete |
-| DATA-01 | Phase 4 | Pending |
-| DATA-02 | Phase 4 | Pending |
-| DATA-03 | Phase 4 | Pending |
-| DATA-04 | Phase 4 | Pending |
+| DATA-01 | Phase 4 | Complete |
+| DATA-02 | Phase 4 | Complete |
+| DATA-03 | Phase 4 | Complete |
+| DATA-04 | Phase 4 | Complete |
 | DATA-05 | Phase 4 | Complete |
 | DATA-06 | Phase 4 | Complete |
 
