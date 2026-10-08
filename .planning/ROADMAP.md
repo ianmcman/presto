@@ -54,7 +54,7 @@ Plans:
 - [x] 02-06-PLAN.md: SPIKE-REPORT.md, D-15 fallback check, go/no-go approval (wave 5)
 
 ### Phase 3: Core Backend, Supervisor, Auth
-**Goal**: The app runs a supervised engine reliably and the user can sign in once and stay signed in. (Outline; detail after spike approval.)
+**Goal**: The app runs a supervised engine reliably and the user can sign in once and stay signed in.
 **Depends on**: Phase 2 approved
 **Requirements**: CORE-01, CORE-02, CORE-03, AUTH-01, AUTH-02, AUTH-03
 **Success Criteria** (what must be TRUE):
@@ -63,7 +63,15 @@ Plans:
   3. First launch shows Apple's login in the engine window, which hides after sign-in and stays hidden on later launches.
   4. When the session expires, the UI offers re-auth while cached data stays visible.
   5. The queue shown in Rust matches MusicKit's queue after rapid changes, and the profile directory has mode 0700.
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 03-01-PLAN.md: Protocol 1.1 (bridge_ready, show_window, set_queue play) and mock support (wave 1)
+- [ ] 03-02-PLAN.md: presto-core crate: 0700 paths, pidfile sweep, backoff (wave 1)
+- [ ] 03-03-PLAN.md: Engine: bridge path override, bridge_ready, Rust-driven window, close-to-hide, hard exit (wave 1)
+- [ ] 03-04-PLAN.md: Supervisor actor: spawn, handshake, heartbeat, backoff restart, drift (wave 2)
+- [ ] 03-05-PLAN.md: Queue mirror, auth gate, restore after crash and re-auth (wave 3)
+- [ ] 03-06-PLAN.md: Live driver and manual checklist on the real engine (wave 4)
 
 ### Phase 4: Data Layer and Cache
 **Goal**: Library and catalog data flows from the engine into Presto models and is cached for fast, offline-ish browsing. (Outline.)
@@ -115,7 +123,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. IPC Contract and Mock Engine | 0/4 | Not started | - |
 | 2. Engine Feasibility Spike (GATE) | 6/6 | Complete   | 2026-10-08 |
-| 3. Core Backend, Supervisor, Auth | 0/TBD | Not started | - |
+| 3. Core Backend, Supervisor, Auth | 0/6 | Not started | - |
 | 4. Data Layer and Cache | 0/TBD | Not started | - |
 | 5. Playback UI and Demo Mode | 0/TBD | Not started | - |
 | 6. Desktop Integration | 0/TBD | Not started | - |
