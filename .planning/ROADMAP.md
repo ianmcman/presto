@@ -8,7 +8,7 @@ Fix the engine-neutral IPC contract and a mock engine first, then run the engine
 
 - [ ] **Phase 1: IPC Contract and Mock Engine** - Versioned JSON protocol, token-free schema, mock engine with fault injection, spotifast seam notes
 - [x] **Phase 2: Engine Feasibility Spike (GATE)** - Prove full-track playback, persistent sign-in, proxied library calls and events from a hidden Widevine engine; stop for approval (completed 2026-10-08)
-- [ ] **Phase 3: Core Backend, Supervisor, Auth** - Engine supervision and recovery, runtime bridge handshake, queue mirror, sign-in and re-auth
+- [x] **Phase 3: Core Backend, Supervisor, Auth** - Engine supervision and recovery, runtime bridge handshake, queue mirror, sign-in and re-auth
 - [ ] **Phase 4: Data Layer and Cache** - Library, search, home, storefront, error states, disk caches
 - [ ] **Phase 5: Playback UI and Demo Mode** - Ported egui views and playback controls, `presto --demo`
 - [ ] **Phase 6: Desktop Integration** - MPRIS, media keys, CLI
@@ -80,7 +80,7 @@ Plans:
 - [x] 03-12-PLAN.md: Gap: live re-run of C1, C2, C3, D; mark CORE-01 on pass (wave 2)
 - [x] 03-13-PLAN.md: Gap: diagnose live restore Seek timeout, mock unanswered seek, RED tests (wave 1)
 - [x] 03-14-PLAN.md: Gap: restore survives a Seek error, Pause before unmute on every exit (wave 2)
-- [ ] 03-15-PLAN.md: Gap: live re-run of C1, C2, C3 at track start, D (wave 3)
+- [x] 03-15-PLAN.md: Gap: live re-run of C1, C2, C3 at track start, D (wave 3)
 
 ### Phase 4: Data Layer and Cache
 **Goal**: Library and catalog data flows from the engine into Presto models and is cached for fast, offline-ish browsing. (Outline.)
