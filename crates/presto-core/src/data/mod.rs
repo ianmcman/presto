@@ -16,7 +16,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use serde_json::Value;
 use tokio::sync::watch;
 
-use crate::CoreHandle;
+use crate::{CoreHandle, CoreState, EngineStatus};
+use presto_ipc::AuthState;
 use crate::paths::Paths;
 use artwork::{ART_CAP, ArtCache};
 use client::ApiClient;
@@ -63,8 +64,6 @@ struct Inner {
     art: Arc<ArtCache>,
     items: Slots<Item>,
     shelves: Slots<Shelf>,
-    /// Read by the D-04 refresh watcher (04-09).
-    #[allow(dead_code)]
     focused: Mutex<Option<ViewKey>>,
     invalidated_at_ms: AtomicI64,
 }
@@ -331,6 +330,71 @@ fn load_more_t<T: Slotted>(i: &Arc<Inner>, key: &ViewKey) {
     }
 }
 
+fn usable(s: &CoreState) -> bool {
+    s.engine == EngineStatus::Ready && s.auth == Some(AuthState::SignedIn)
+}
+
+/// Mid-session sign-out only: never a startup signed_out, never expiry, never across a restart.
+fn signed_out_transition(prev: &CoreState, cur: &CoreState) -> bool {
+    prev.auth == Some(AuthState::SignedIn) && cur.auth == Some(AuthState::SignedOut) && prev.restarts == cur.restarts
+}
+
+fn reset<T: Slotted>(i: &Inner) {
+    for sl in T::slots(i).lock().unwrap().values_mut() {
+        sl.gn += 1;
+        sl.pages = 0;
+        sl.fetched_at_ms = None;
+        sl.cached_body0 = None;
+        sl.tx.send_replace(ListState::default());
+    }
+}
+
+fn reset_all(i: &Inner) {
+    reset::<Item>(i);
+    reset::<Shelf>(i);
+}
+
+fn refresh_focused(i: &Arc<Inner>) {
+    let f = i.focused.lock().unwrap().clone();
+    if let Some(k) = f {
+        DataHandle { inner: i.clone() }.refresh(&k);
+    }
+}
+
+// ponytail: an in-flight fetch that already passed its gen check can still write one page after a wipe.
+async fn wipe(i: &Arc<Inner>, reload: bool) {
+    let (st, art) = (i.store.clone(), i.art.clone());
+    blk(move || {
+        st.wipe();
+        let _ = art.clear();
+    })
+    .await;
+    i.client.set_storefront(None);
+    reset_all(i);
+    if reload {
+        refresh_focused(i);
+    }
+}
+
+async fn on_transition(i: &Arc<Inner>, prev: &CoreState, cur: &CoreState) {
+    if signed_out_transition(prev, cur) {
+        return wipe(i, false).await;
+    }
+    if usable(cur) && (!usable(prev) || prev.restarts != cur.restarts) {
+        let old = i.client.cached_storefront();
+        if let Ok(sf) = i.client.refresh_storefront().await {
+            let (st, v) = (i.store.clone(), sf.clone());
+            blk(move || st.set_meta("storefront", &v)).await;
+            if old.is_some_and(|o| o != sf) {
+                reset_all(i);
+            }
+        }
+        // D-04: other views revalidate on next open; only the focused one now
+        i.invalidated_at_ms.store(now_ms(), Ordering::Relaxed);
+        refresh_focused(i);
+    }
+}
+
 impl DataHandle {
     /// Call inside a tokio runtime: background work is spawned on it.
     pub fn new(core: CoreHandle, paths: &Paths) -> io::Result<DataHandle> {
@@ -340,18 +404,33 @@ impl DataHandle {
         let client = ApiClient::new(core, paths.install_id()?);
         // an offline start can still compute the account key
         client.set_storefront(store.get_meta("storefront"));
-        Ok(DataHandle {
-            inner: Arc::new(Inner {
-                rt: tokio::runtime::Handle::current(),
-                client,
-                store,
-                art,
-                items: Default::default(),
-                shelves: Default::default(),
-                focused: Default::default(),
-                invalidated_at_ms: AtomicI64::new(0),
-            }),
-        })
+        let inner = Arc::new(Inner {
+            rt: tokio::runtime::Handle::current(),
+            client,
+            store,
+            art,
+            items: Default::default(),
+            shelves: Default::default(),
+            focused: Default::default(),
+            invalidated_at_ms: AtomicI64::new(0),
+        });
+        let (weak, mut rx) = (Arc::downgrade(&inner), inner.client.core().state());
+        let mut prev = rx.borrow_and_update().clone();
+        inner.rt.spawn(async move {
+            while rx.changed().await.is_ok() {
+                let cur = rx.borrow_and_update().clone();
+                let Some(i) = weak.upgrade() else { return };
+                on_transition(&i, &prev, &cur).await;
+                prev = cur;
+            }
+        });
+        Ok(DataHandle { inner })
+    }
+
+    /// D-17 Settings button: wipes cache and artwork, keeps sign-in, reloads the open view.
+    pub fn clear_cache(&self) {
+        let i = self.inner.clone();
+        self.inner.rt.spawn(async move { wipe(&i, true).await });
     }
 
     /// Library, RecentlyPlayed, Shelf. Use `shelves()` for Recommendations.
@@ -403,5 +482,33 @@ impl DataHandle {
 
     pub fn art(&self) -> &Arc<ArtCache> {
         &self.inner.art
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn st(auth: Option<AuthState>, restarts: u32) -> CoreState {
+        CoreState { auth, restarts, ..Default::default() }
+    }
+
+    #[test]
+    fn wipe_rule() {
+        use AuthState::*;
+        assert!(!signed_out_transition(&st(None, 0), &st(Some(SignedOut), 0)));
+        assert!(!signed_out_transition(&st(Some(SignedIn), 0), &st(Some(Expired), 0)));
+        assert!(!signed_out_transition(&st(Some(SignedIn), 0), &st(Some(SignedOut), 1)));
+        assert!(signed_out_transition(&st(Some(SignedIn), 0), &st(Some(SignedOut), 0)));
+    }
+
+    #[test]
+    fn usable_needs_ready_and_signed_in() {
+        let mut s = st(Some(AuthState::SignedIn), 0);
+        assert!(!usable(&s));
+        s.engine = EngineStatus::Ready;
+        assert!(usable(&s));
+        s.auth = Some(AuthState::Expired);
+        assert!(!usable(&s));
     }
 }
