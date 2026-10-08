@@ -1,0 +1,52 @@
+Sink Input #265
+	Driver: PipeWire
+	Owner Module: n/a
+	Client: 264
+	Sink: 56
+	Sample Specification: float32le 2ch 48000Hz
+	Channel Map: front-left,front-right
+	Format: pcm, format.sample_format = "\"float32le\""  format.rate = "48000"  format.channels = "2"  format.channel_map = "\"front-left,front-right\""
+	Corked: no
+	Mute: no
+	Volume: front-left: 65536 / 100% / 0.00 dB,   front-right: 65536 / 100% / 0.00 dB
+	        balance 0.00
+	Buffer Latency: 0 usec
+	Sink Latency: 0 usec
+	Resample method: PipeWire
+	Properties:
+		client.api = "pipewire-pulse"
+		pulse.server.type = "unix"
+		application.name = "presto-engine"
+		application.process.id = "827373"
+		application.process.user = "mcmanusiang"
+		application.process.host = "Ian-PC"
+		application.process.binary = "electron"
+		application.language = "en_US.UTF-8"
+		application.process.machine_id = "9208d477718d49b08f731ee9edfbcf8f"
+		application.process.session_id = "20"
+		application.icon_name = "presto-engine"
+		media.name = "Playback"
+		pulse.corked = "false"
+		node.rate = "1/48000"
+		node.latency = "1024/48000"
+		stream.is-live = "true"
+		node.name = "presto-engine"
+		node.want-driver = "true"
+		node.autoconnect = "true"
+		media.class = "Stream/Output/Audio"
+		port.group = "stream.0"
+		adapt.follower.spa-node = ""
+		object.register = "false"
+		factory.id = "7"
+		clock.quantum-limit = "8192"
+		node.loop.name = "data-loop.0"
+		library.name = "audioconvert/libspa-audioconvert"
+		client.id = "104"
+		object.id = "106"
+		object.serial = "265"
+		pulse.attr.maxlength = "4194304"
+		pulse.attr.tlength = "16384"
+		pulse.attr.prebuf = "12296"
+		pulse.attr.minreq = "4096"
+		node.driver-id = "56"
+		module-stream-restore.id = "sink-input-by-application-name:presto-engine"
