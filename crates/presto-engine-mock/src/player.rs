@@ -3,7 +3,7 @@
 
 use crate::catalog;
 use presto_ipc::{Command, ErrorKind, Event, IpcError, PlayState, QueueItem, RepeatMode};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 pub struct Player {
     queue: Vec<QueueItem>,
@@ -16,9 +16,10 @@ pub struct Player {
     shuffle: bool,
     repeat: RepeatMode,
     seq: u64,
-    /// Mimics MusicKit on a fresh load: the first seek after set_queue is dropped and playback autostarts (03-06 live gaps).
+    /// Mimics MusicKit on a fresh load: state is loading, Play/Pause are dropped while loading, the first seek is dropped, and playback autostarts 800 ms after load and 400 ms after any seek (03-06, 03-08 live gaps).
     pub restore_quirks: bool,
     loading: bool,
+    autoplay_at: Option<Instant>,
 }
 
 impl Player {
@@ -36,6 +37,7 @@ impl Player {
             seq: 0,
             restore_quirks: false,
             loading: false,
+            autoplay_at: None,
         }
     }
 
@@ -151,6 +153,10 @@ impl Player {
                 };
                 self.restart(now);
                 self.loading = self.restore_quirks;
+                if self.restore_quirks {
+                    self.state = PlayState::Loading;
+                    self.autoplay_at = Some(now + Duration::from_millis(800));
+                }
                 Ok(vec![
                     self.queue_evt(),
                     self.track_evt(),
@@ -161,6 +167,9 @@ impl Player {
             Command::ShowWindow { .. } => Ok(vec![]),
             Command::Play => {
                 self.require_queue()?;
+                if self.restore_quirks && self.state == PlayState::Loading {
+                    return Ok(vec![]);
+                }
                 let pos = if self.state == PlayState::Ended {
                     0
                 } else {
@@ -174,6 +183,9 @@ impl Player {
             }
             Command::Pause => {
                 self.require_queue()?;
+                if self.restore_quirks && self.state == PlayState::Loading {
+                    return Ok(vec![]);
+                }
                 self.base_ms = self.position(now);
                 self.base_at = now;
                 self.state = PlayState::Paused;
@@ -184,15 +196,16 @@ impl Player {
                 self.require_queue()?;
                 if self.loading {
                     self.loading = false;
-                    self.base_ms = self.position(now);
-                    self.base_at = now;
-                    self.state = PlayState::Playing;
-                    self.seq += 1;
-                    return Ok(vec![self.state_evt(), self.progress(now)]);
+                    return Ok(vec![]);
                 }
                 self.base_ms = (*ms).min(self.duration());
                 self.base_at = now;
                 self.seq += 1;
+                if self.restore_quirks {
+                    self.state = PlayState::Loading;
+                    self.autoplay_at = Some(now + Duration::from_millis(400));
+                    return Ok(vec![self.state_evt(), self.progress(now)]);
+                }
                 Ok(vec![self.progress(now)])
             }
             Command::Next => {
@@ -228,6 +241,13 @@ impl Player {
     }
 
     pub fn tick(&mut self, now: Instant) -> Vec<Event> {
+        if self.autoplay_at.is_some_and(|t| now >= t) {
+            self.autoplay_at = None;
+            self.base_at = now;
+            self.state = PlayState::Playing;
+            self.seq += 1;
+            return vec![self.state_evt(), self.progress(now)];
+        }
         if self.state != PlayState::Playing {
             return vec![];
         }
@@ -436,8 +456,9 @@ mod tests {
     }
 
     #[test]
-    fn restore_quirks_drop_first_seek_and_autoplay() {
+    fn restore_quirks_model_musickit_load() {
         let t0 = Instant::now();
+        let ms = |n| t0 + Duration::from_millis(n);
         let mut p = Player::new(t0);
         p.restore_quirks = true;
         let cmd = Command::SetQueue {
@@ -446,12 +467,20 @@ mod tests {
             play: false,
         };
         p.apply(&cmd, t0).unwrap();
+        assert_eq!(p.state, PlayState::Loading);
+        assert!(p.apply(&Command::Pause, t0).unwrap().is_empty());
+        assert_eq!(p.state, PlayState::Loading);
         p.apply(&Command::Seek { ms: 60000 }, t0).unwrap();
-        assert_eq!(p.position(t0), 0);
+        assert_eq!((p.position(t0), p.state), (0, PlayState::Loading));
+        p.tick(ms(900));
+        assert_eq!((p.position(ms(900)), p.state), (0, PlayState::Playing));
+        p.apply(&Command::Seek { ms: 60000 }, ms(900)).unwrap();
+        assert_eq!((p.position(ms(900)), p.state), (60000, PlayState::Loading));
+        assert!(p.apply(&Command::Pause, ms(900)).unwrap().is_empty());
+        p.tick(ms(1400));
         assert_eq!(p.state, PlayState::Playing);
-        p.apply(&Command::Seek { ms: 60000 }, t0).unwrap();
-        assert_eq!(p.position(t0), 60000);
-        p.apply(&Command::Pause, t0).unwrap();
+        p.apply(&Command::Pause, ms(1400)).unwrap();
         assert_eq!(p.state, PlayState::Paused);
+        assert!((60000..60600).contains(&p.position(ms(1400))));
     }
 }

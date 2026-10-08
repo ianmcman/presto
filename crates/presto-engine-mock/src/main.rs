@@ -35,7 +35,7 @@ struct Args {
     /// Capabilities advertised in bridge_ready.
     #[arg(long, value_delimiter = ',', default_value = "playback,queue,api")]
     bridge_caps: Vec<String>,
-    /// Test only: drop the first seek after set_queue and autoplay, like MusicKit mid-load.
+    /// Test only: mimic MusicKit load (drops Play/Pause and first seek while loading, autoplays after load and seek).
     #[arg(long)]
     restore_quirks: bool,
 }

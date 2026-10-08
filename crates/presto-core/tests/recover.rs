@@ -4,7 +4,7 @@ use presto_core::EngineStatus;
 use presto_ipc::{Command, ErrorKind, FaultSpec, Outcome, PlayState, RepeatMode};
 use std::time::Duration;
 
-const T: Duration = Duration::from_secs(5);
+const T: Duration = Duration::from_secs(15);
 
 fn ready(s: &presto_core::CoreState) -> bool {
     s.engine == EngineStatus::Ready
@@ -186,6 +186,9 @@ async fn quirky_crash_restores_paused_when_paused() {
     wait_for(&mut rx, T, |s| s.player.state == PlayState::Paused).await;
     let s = crash(&r, &mut rx, 1).await;
     assert_eq!(s.player.state, PlayState::Paused);
+    tokio::time::sleep(Duration::from_millis(1500)).await;
+    let s = rx.borrow().clone();
+    assert_eq!(s.player.state, PlayState::Paused);
     assert!((30000..=31000).contains(&s.player.position_ms), "{}", s.player.position_ms);
     r.core.shutdown().await;
 }
@@ -197,5 +200,7 @@ async fn quirky_second_crash_restores_paused() {
     assert_eq!(s.player.state, PlayState::Playing);
     let s = crash(&r, &mut rx, 2).await;
     assert_eq!(s.player.state, PlayState::Paused);
+    tokio::time::sleep(Duration::from_millis(1500)).await;
+    assert_eq!(rx.borrow().player.state, PlayState::Paused);
     r.core.shutdown().await;
 }

@@ -23,7 +23,7 @@
 
 ### Core and Auth
 
-- [x] **CORE-01**: Supervisor detects engine crash or hang, restarts with backoff, and restores queue and position
+- [ ] **CORE-01**: Supervisor detects engine crash or hang, restarts with backoff, and restores queue and position
 - [x] **CORE-02**: Bridge script loads from a standalone file at runtime and reports version and capabilities in a handshake
 - [x] **CORE-03**: MusicKit owns the queue; Rust holds a read-only mirror reconciled by revision counter
 - [x] **AUTH-01**: User signs in once through Apple's own login flow shown in the engine window, then it is hidden
@@ -87,7 +87,7 @@
 | IPC-02 | Phase 1 | Complete |
 | IPC-03 | Phase 1 | Complete |
 | IPC-04 | Phase 5 | Pending |
-| CORE-01 | Phase 3 | Complete |
+| CORE-01 | Phase 3 | Pending |
 | CORE-02 | Phase 3 | Complete |
 | CORE-03 | Phase 3 | Complete |
 | AUTH-01 | Phase 3 | Complete |
