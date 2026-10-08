@@ -765,6 +765,38 @@ expression: "schemars::schema_for!(presto_ipc::Frame)"
             "kind",
             "delay_ms"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rate_limited"
+            },
+            "retry_after_ms": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "signed_out"
+            }
+          },
+          "required": [
+            "kind"
+          ]
         }
       ]
     },

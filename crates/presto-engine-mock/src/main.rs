@@ -23,7 +23,7 @@ struct Args {
     #[arg(long, env = "PRESTO_PROFILE")]
     #[allow(dead_code)]
     profile: Option<PathBuf>,
-    /// Startup fault, repeatable: none, hang, crash[@ms], auth_expired, slow[=ms].
+    /// Startup fault, repeatable: none, hang, crash[@ms], auth_expired, slow[=ms], rate_limited[=ms], signed_out.
     #[arg(long = "fault", value_parser = |s: &str| s.parse::<FaultSpec>())]
     faults: Vec<FaultSpec>,
     /// Initial auth state.
@@ -107,6 +107,17 @@ impl Engine {
                     },
                 }]
             }
+            Frame::Req { id, .. } if self.faults.rate_limited.is_some() => vec![Frame::Res {
+                id,
+                outcome: Outcome::Err {
+                    error: IpcError::new(
+                        ErrorKind::RateLimited {
+                            retry_after_ms: self.faults.rate_limited.flatten(),
+                        },
+                        "mock: rate limited",
+                    ),
+                },
+            }],
             Frame::Cmd {
                 cmd: Command::Seek { .. },
                 ..

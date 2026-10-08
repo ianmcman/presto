@@ -245,3 +245,45 @@ async fn bridge_caps_flag() {
         Frame::Evt { evt: Event::BridgeReady { capabilities, .. } } if capabilities == ["playback", "queue"]
     ));
 }
+
+#[tokio::test]
+async fn rate_limited_flag_and_clear() {
+    let mut h = start(&["--fault", "rate_limited=250"]).await;
+    send(&mut h, playlists(1)).await;
+    assert_eq!(
+        err_kind(expect(&mut h, T, is_res(1)).await),
+        ErrorKind::RateLimited {
+            retry_after_ms: Some(250)
+        }
+    );
+    send(
+        &mut h,
+        Frame::Cmd {
+            id: 2,
+            cmd: Command::SetQueue {
+                ids: vec!["s1".into()],
+                start: 0,
+                play: false,
+            },
+        },
+    )
+    .await;
+    assert!(is_ok(&expect(&mut h, T, is_res(2)).await));
+    mock(&mut h, 3, FaultSpec::None).await;
+    expect(&mut h, T, is_res(3)).await;
+    send(&mut h, playlists(4)).await;
+    assert!(is_ok(&expect(&mut h, T, is_res(4)).await));
+}
+
+#[tokio::test]
+async fn signed_out_live() {
+    let mut h = start(&[]).await;
+    mock(&mut h, 1, FaultSpec::SignedOut).await;
+    expect(&mut h, T, is_auth(AuthState::SignedOut)).await;
+    expect(&mut h, T, is_res(1)).await;
+    send(&mut h, playlists(2)).await;
+    assert_eq!(
+        err_kind(expect(&mut h, T, is_res(2)).await),
+        ErrorKind::AuthExpired
+    );
+}

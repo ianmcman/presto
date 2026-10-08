@@ -8,6 +8,8 @@ pub struct Faults {
     /// Started signed out: cmd and req are rejected until `none`.
     pub signed_out: bool,
     pub slow: Option<Duration>,
+    /// Every req gets `rate_limited` with this retry_after_ms.
+    pub rate_limited: Option<Option<u64>>,
 }
 
 impl Faults {
@@ -19,6 +21,7 @@ impl Faults {
                     std::mem::take(&mut self.auth_expired) | std::mem::take(&mut self.signed_out);
                 self.hang = false;
                 self.slow = None;
+                self.rate_limited = None;
                 if was_expired {
                     return vec![Event::Auth {
                         state: AuthState::SignedIn,
@@ -33,6 +36,13 @@ impl Faults {
                 }];
             }
             FaultSpec::Slow { delay_ms } => self.slow = Some(Duration::from_millis(*delay_ms)),
+            FaultSpec::RateLimited { retry_after_ms } => self.rate_limited = Some(*retry_after_ms),
+            FaultSpec::SignedOut => {
+                self.signed_out = true;
+                return vec![Event::Auth {
+                    state: AuthState::SignedOut,
+                }];
+            }
             FaultSpec::Crash { .. } => {}
         }
         vec![]
@@ -95,5 +105,37 @@ mod tests {
         assert!(f.hang);
         assert!(f.apply(&FaultSpec::None).is_empty());
         assert!(!f.hang && f.slow.is_none());
+    }
+
+    #[test]
+    fn rate_limited_then_none() {
+        let mut f = Faults::default();
+        let spec = FaultSpec::RateLimited {
+            retry_after_ms: Some(200),
+        };
+        assert!(f.apply(&spec).is_empty());
+        assert_eq!(f.rate_limited, Some(Some(200)));
+        assert!(f.apply(&FaultSpec::None).is_empty());
+        assert_eq!(f.rate_limited, None);
+    }
+
+    #[test]
+    fn signed_out_live_then_none() {
+        let mut f = Faults::default();
+        let ev = f.apply(&FaultSpec::SignedOut);
+        assert!(matches!(
+            ev.as_slice(),
+            [Event::Auth {
+                state: AuthState::SignedOut
+            }]
+        ));
+        assert!(f.signed_out);
+        let ev = f.apply(&FaultSpec::None);
+        assert!(matches!(
+            ev.as_slice(),
+            [Event::Auth {
+                state: AuthState::SignedIn
+            }]
+        ));
     }
 }

@@ -141,16 +141,18 @@ Presto sends `ping` every 2 s; the engine answers `pong` with the same `seq`. Th
 
 ## Mock engine control
 
-The mock engine accepts a `mock` frame with `fault`, tagged by `kind`: `none`, `hang`, `crash` (`after_ms`), `auth_expired`, `slow` (`delay_ms`).
+The mock engine accepts a `mock` frame with `fault`, tagged by `kind`: `none`, `hang`, `crash` (`after_ms`), `auth_expired`, `slow` (`delay_ms`), `rate_limited` (`retry_after_ms`), `signed_out`.
 
-CLI: `--fault`, repeatable, syntax `none|hang|crash|crash@<ms>|auth_expired|slow|slow=<ms>`. `slow` defaults to 3000 ms. Startup faults take effect right after the handshake. `--auth signed_in|signed_out` sets the initial auth state (signed_out rejects `cmd` and `req` with `auth_expired`, except `show_window`). `--bridge-missing` suppresses `bridge_ready` and the initial `auth`. `--bridge-caps <csv>` sets the `bridge_ready` capabilities (default `playback,queue,api`).
+CLI: `--fault`, repeatable, syntax `none|hang|crash|crash@<ms>|auth_expired|slow|slow=<ms>|rate_limited|rate_limited=<ms>|signed_out`. `slow` defaults to 3000 ms. Startup faults take effect right after the handshake. `--auth signed_in|signed_out` sets the initial auth state (signed_out rejects `cmd` and `req` with `auth_expired`, except `show_window`). `--bridge-missing` suppresses `bridge_ready` and the initial `auth`. `--bridge-caps <csv>` sets the `bridge_ready` capabilities (default `playback,queue,api`).
 
 - `hang`: drops every outbound frame (replies, events, pongs) while still reading. The socket stays open. Only a `mock` `none` frame clears it.
 - `crash`: exits with status 101, immediately or after `after_ms`.
 - `auth_expired`: emits `auth` `expired`. Every `cmd` and `req` then gets `err` `auth_expired` until cleared. `none` then emits `auth` `signed_in`, also after a signed_out start.
 - `slow`: delays every `res` by `delay_ms`; `evt` and `pong` stay on time.
+- `rate_limited`: every `req` gets `err` `rate_limited` with the given `retry_after_ms` (null if omitted) until `none`; `cmd` is unaffected.
+- `signed_out`: emits `auth` `signed_out`; every `cmd` and `req` then gets `err` `auth_expired` (except `show_window`) until `none`, which emits `auth` `signed_in`.
 
-`mock` frames are acked with `res` immediately and are never delayed.
+`mock` frames are acked with `res` immediately and are never delayed. Mock-only frames do not change the protocol version.
 
 ## Security
 
