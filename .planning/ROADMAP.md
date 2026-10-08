@@ -100,7 +100,7 @@ Plans:
 - [x] 04-03-PLAN.md: Deps, cache paths and install id, data module tree, UiErrorKind, SQLite store (wave 1)
 - [x] 04-04-PLAN.md: ApiClient: storefront, fail-fast gating, error mapping (wave 2)
 - [x] 04-05-PLAN.md: Artwork disk cache with 500 MB LRU (wave 2)
-- [ ] 04-06-PLAN.md: Models, view keys, sort support, list state, TTL and retry policy (wave 2)
+- [x] 04-06-PLAN.md: Models, view keys, sort support, list state, TTL and retry policy (wave 2)
 - [ ] 04-07-PLAN.md: DataHandle: cache-then-revalidate, lazy paging, Home, error states (wave 3)
 - [ ] 04-08-PLAN.md: Debounced search with hints, scope and history (wave 3)
 - [ ] 04-09-PLAN.md: Lifecycle: offline cache, D-04 revalidation, sign-out wipe, Clear cache (wave 4)
