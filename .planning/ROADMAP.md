@@ -10,7 +10,7 @@ Fix the engine-neutral IPC contract and a mock engine first, then run the engine
 - [x] **Phase 2: Engine Feasibility Spike (GATE)** - Prove full-track playback, persistent sign-in, proxied library calls and events from a hidden Widevine engine; stop for approval (completed 2026-10-08)
 - [x] **Phase 3: Core Backend, Supervisor, Auth** - Engine supervision and recovery, runtime bridge handshake, queue mirror, sign-in and re-auth
 - [ ] **Phase 4: Data Layer and Cache** - Library, search, home, storefront, error states, disk caches
-- [ ] **Phase 5: Playback UI and Demo Mode** - Ported egui views and playback controls, `presto --demo`
+- [x] **Phase 5: Playback UI and Demo Mode** - Ported egui views and playback controls, `presto --demo` (completed 2026-10-08)
 - [ ] **Phase 6: Desktop Integration** - MPRIS, media keys, CLI
 - [ ] **Phase 7: Packaging and Distribution Notes** - AUR package with runtime CDM fetch, documented blockers
 
@@ -158,6 +158,6 @@ Plans:
 | 2. Engine Feasibility Spike (GATE) | 6/6 | Complete   | 2026-10-08 |
 | 3. Core Backend, Supervisor, Auth | 15/15 | Complete | 2026-10-08 |
 | 4. Data Layer and Cache | 0/9 | Planned | - |
-| 5. Playback UI and Demo Mode | 0/11 | Planned | - |
+| 5. Playback UI and Demo Mode | 0/11 | Complete    | 2026-10-08 |
 | 6. Desktop Integration | 0/TBD | Not started | - |
 | 7. Packaging and Distribution Notes | 0/TBD | Not started | - |
