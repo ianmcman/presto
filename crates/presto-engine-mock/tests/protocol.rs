@@ -267,3 +267,25 @@ async fn set_queue_play_false_stays_paused() {
     })
     .await;
 }
+
+#[tokio::test]
+async fn unavailable_track_errors_and_stops() {
+    let mut h = start(&[]).await;
+    send(&mut h, cmd(1, set_queue(&["s7", "s1"]))).await;
+    expect(&mut h, T, |f| {
+        matches!(f, Frame::Evt { evt: Event::Error { error } } if error.kind == ErrorKind::Unavailable)
+    })
+    .await;
+    expect(&mut h, T, |f| {
+        matches!(
+            f,
+            Frame::Evt {
+                evt: Event::PlaybackState {
+                    state: PlayState::Stopped,
+                    ..
+                }
+            }
+        )
+    })
+    .await;
+}

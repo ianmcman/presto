@@ -5,6 +5,23 @@ use crate::catalog;
 use presto_ipc::{Command, ErrorKind, Event, IpcError, PlayState, QueueItem, RepeatMode};
 use std::time::{Duration, Instant};
 
+/// Runtime failure derived from the track itself (no fault kind needed).
+fn failure(item: &QueueItem) -> Option<IpcError> {
+    if !item.playable {
+        Some(IpcError::new(
+            ErrorKind::Unavailable,
+            "mock: track is not available",
+        ))
+    } else if item.id == "s8" {
+        Some(IpcError::new(
+            ErrorKind::Upstream { status: 503 },
+            "mock: stream failed",
+        ))
+    } else {
+        None
+    }
+}
+
 pub struct Player {
     queue: Vec<QueueItem>,
     rev: u64,
@@ -101,6 +118,23 @@ impl Player {
         self.seq += 1;
     }
 
+    /// Stops with an error event when the current track cannot play.
+    fn fail_current(&mut self, ev: &mut Vec<Event>, now: Instant) {
+        let Some(error) = self.index.and_then(|i| failure(&self.queue[i])) else {
+            return;
+        };
+        if !matches!(self.state, PlayState::Playing | PlayState::Loading) {
+            return;
+        }
+        self.state = PlayState::Stopped;
+        self.base_ms = 0;
+        self.base_at = now;
+        self.autoplay_at = None;
+        self.seq += 1;
+        ev.push(Event::Error { error });
+        ev.push(self.state_evt());
+    }
+
     fn move_to(&mut self, idx: usize, now: Instant) -> Vec<Event> {
         let was = self.state;
         self.index = Some(idx);
@@ -112,6 +146,7 @@ impl Player {
             ev.push(self.state_evt());
         }
         ev.push(self.progress(now));
+        self.fail_current(&mut ev, now);
         ev
     }
 
@@ -161,12 +196,16 @@ impl Player {
                     self.state = PlayState::Loading;
                     self.autoplay_at = Some(now + Duration::from_millis(800));
                 }
-                Ok(vec![
+                let mut ev = vec![
                     self.queue_evt(),
                     self.track_evt(),
                     self.state_evt(),
                     self.progress(now),
-                ])
+                ];
+                if *play {
+                    self.fail_current(&mut ev, now);
+                }
+                Ok(ev)
             }
             Command::ShowWindow { .. } => Ok(vec![]),
             Command::Play => {
@@ -183,7 +222,9 @@ impl Player {
                 self.base_at = now;
                 self.state = PlayState::Playing;
                 self.seq += 1;
-                Ok(vec![self.state_evt(), self.progress(now)])
+                let mut ev = vec![self.state_evt(), self.progress(now)];
+                self.fail_current(&mut ev, now);
+                Ok(ev)
             }
             Command::Pause => {
                 self.require_queue()?;
@@ -457,6 +498,63 @@ mod tests {
         assert_eq!(p.state, PlayState::Ended);
         p.apply(&Command::Play, secs(t0, 300)).unwrap();
         assert_eq!(p.position(secs(t0, 300)), 0);
+    }
+
+    fn has_err(ev: &[Event], kind: ErrorKind) -> bool {
+        ev.iter()
+            .any(|e| matches!(e, Event::Error { error } if error.kind == kind))
+    }
+
+    #[test]
+    fn fail_unavailable_then_next_plays() {
+        let t0 = Instant::now();
+        let mut p = Player::new(t0);
+        let ev = p.apply(&q(&["s7", "s1"], 0), t0).unwrap();
+        assert!(matches!(&ev[0], Event::QueueChanged { items, .. } if !items[0].playable));
+        assert!(has_err(&ev, ErrorKind::Unavailable));
+        assert_eq!(p.state, PlayState::Stopped);
+        let ev = p.apply(&Command::Next, t0).unwrap();
+        assert!(matches!(&ev[1], Event::TrackChanged { item: Some(i) } if i.id == "s1"));
+        assert_eq!(p.state, PlayState::Playing);
+    }
+
+    #[test]
+    fn fail_runtime_and_advance_into_failure() {
+        let t0 = Instant::now();
+        let mut p = Player::new(t0);
+        let ev = p.apply(&q(&["s8"], 0), t0).unwrap();
+        assert!(has_err(&ev, ErrorKind::Upstream { status: 503 }));
+        assert_eq!(p.state, PlayState::Stopped);
+        let mut p = Player::new(t0);
+        p.apply(&q(&["s1", "s8"], 0), t0).unwrap();
+        let ev = p.apply(&Command::Next, t0).unwrap();
+        assert!(has_err(&ev, ErrorKind::Upstream { status: 503 }));
+        assert_eq!((p.state, p.index), (PlayState::Stopped, Some(1)));
+    }
+
+    #[test]
+    fn paused_load_no_error_until_play() {
+        let t0 = Instant::now();
+        let mut p = Player::new(t0);
+        let cmd = Command::SetQueue {
+            ids: vec!["s8".into()],
+            start: 0,
+            play: false,
+        };
+        let ev = p.apply(&cmd, t0).unwrap();
+        assert!(!ev.iter().any(|e| matches!(e, Event::Error { .. })));
+        let ev = p.apply(&Command::Play, t0).unwrap();
+        assert!(has_err(&ev, ErrorKind::Upstream { status: 503 }));
+        assert_eq!(p.state, PlayState::Stopped);
+    }
+
+    #[test]
+    fn generated_ids_queue() {
+        let t0 = Instant::now();
+        let mut p = Player::new(t0);
+        let ev = p.apply(&q(&["i.00001", "i.00002"], 0), t0).unwrap();
+        assert!(matches!(&ev[0], Event::QueueChanged { items, .. }
+            if items[0].title == "Song 00001" && items[1].title == "Song 00002"));
     }
 
     #[test]
