@@ -44,7 +44,7 @@
 - [ ] **PLAY-01**: User can play, pause, seek, skip, shuffle, repeat and set volume
 - [ ] **PLAY-02**: User can see and use the queue
 - [ ] **PLAY-03**: User can open album, artist and playlist pages and play from them
-- [ ] **PLAY-04**: Unavailable tracks show a clear state
+- [x] **PLAY-04**: Unavailable tracks show a clear state
 
 ### Desktop Integration
 
@@ -96,7 +96,7 @@
 | PLAY-01 | Phase 5 | Pending |
 | PLAY-02 | Phase 5 | Pending |
 | PLAY-03 | Phase 5 | Pending |
-| PLAY-04 | Phase 5 | Pending |
+| PLAY-04 | Phase 5 | Complete |
 | DESK-01 | Phase 6 | Pending |
 | DESK-02 | Phase 6 | Pending |
 | PKG-01 | Phase 7 | Pending |
