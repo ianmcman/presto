@@ -63,7 +63,7 @@ Plans:
   3. First launch shows Apple's login in the engine window, which hides after sign-in and stays hidden on later launches.
   4. When the session expires, the UI offers re-auth while cached data stays visible.
   5. The queue shown in Rust matches MusicKit's queue after rapid changes, and the profile directory has mode 0700.
-**Plans**: 8 plans
+**Plans**: 10 plans
 
 Plans:
 - [x] 03-01-PLAN.md: Protocol 1.1 (bridge_ready, show_window, set_queue play) and mock support (wave 1)
@@ -74,6 +74,8 @@ Plans:
 - [x] 03-06-PLAN.md: Live driver and manual checklist on the real engine (wave 4)
 - [x] 03-07-PLAN.md: Gap: restore ends with Play/Pause and verified seek, quirky-mock tests (wave 1)
 - [ ] 03-08-PLAN.md: Gap: re-run live crash/hang checklist C and D (wave 2)
+- [ ] 03-09-PLAN.md: Gap: mock autoplay-after-load, restore waits out loading and holds paused (wave 1)
+- [ ] 03-10-PLAN.md: Gap: live re-run of C2, C3, D; mark CORE-01 on pass (wave 2)
 
 ### Phase 4: Data Layer and Cache
 **Goal**: Library and catalog data flows from the engine into Presto models and is cached for fast, offline-ish browsing. (Outline.)
