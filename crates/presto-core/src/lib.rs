@@ -1,6 +1,8 @@
 //! Presto core: engine supervisor, queue mirror, auth state. No UI.
+pub mod auth;
 pub mod backoff;
 pub mod config;
+pub mod mirror;
 pub mod paths;
 pub mod state;
 mod supervisor;

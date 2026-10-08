@@ -1,4 +1,6 @@
 //! State published by the supervisor over a `watch` channel.
+use crate::mirror::{PlayerMirror, QueueMirror};
+use presto_ipc::AuthState;
 use serde::Serialize;
 use std::path::PathBuf;
 
@@ -25,4 +27,7 @@ pub struct CoreState {
     pub bridge: Option<BridgeInfo>,
     pub restarts: u32,
     pub log_path: Option<PathBuf>,
+    pub auth: Option<AuthState>,
+    pub queue: QueueMirror,
+    pub player: PlayerMirror,
 }
