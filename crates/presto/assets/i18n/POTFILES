@@ -1,2 +1,15 @@
 src/ui/widgets.rs
 src/ui/toasts.rs
+src/app.rs
+src/ui/mod.rs
+src/ui/sidebar.rs
+src/ui/status.rs
+src/ui/keys.rs
+src/ui/player_bar.rs
+src/ui/queue.rs
+src/ui/home.rs
+src/ui/library.rs
+src/ui/search.rs
+src/ui/settings.rs
+src/ui/detail.rs
+src/ui/artist.rs
