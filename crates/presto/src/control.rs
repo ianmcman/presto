@@ -1,7 +1,7 @@
 //! Control operations: mapping CtlOp to Commands, with guard traits and state helpers.
 
 use presto_core::state::CoreState;
-use presto_ipc::{AuthState, Command, PlayState, RepeatMode};
+use presto_ipc::{AuthState, Command};
 use crate::playback::{toggle_cmd, seek_by, volume_by, next_repeat, MIN_SEEK_MS, Clock};
 
 pub trait Control: Send + Sync {
@@ -171,6 +171,7 @@ mod tests {
     use super::*;
     use presto_core::mirror::PlayerMirror;
     use presto_ipc::ctl::CtlOp;
+    use presto_ipc::{PlayState, RepeatMode};
 
     fn mk_state(
         engine: presto_core::state::EngineStatus,
