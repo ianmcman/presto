@@ -1,0 +1,19 @@
+presto-core: spawned engine pid 970192 (attempt 0), log /home/mcmanusiang/.local/state/presto/logs/engine-1791456552-0.log
+presto-core: engine failed: engine closed the connection: EOF
+presto-core: spawned engine pid 970673 (attempt 1), log /home/mcmanusiang/.local/state/presto/logs/engine-1791456602-1.log
+presto-core: restore: SetQueue { ids: ["6781080934", "1517099633", "1673536443"], start: 1, play: false } -> ok, state Playing at 0 ms
+presto-core: restore: Seek { ms: 72000 } -> ok, state Playing at 1000 ms
+presto-core: restore: SetShuffle { on: false } -> ok, state Loading at 72000 ms
+presto-core: restore: SetRepeat { mode: Off } -> ok, state Loading at 72000 ms
+presto-core: restore: SetVolume { volume: 0.5 } -> ok, state Playing at 72000 ms
+presto-core: restore: Play -> ok, state Playing at 72000 ms
+presto-core: engine failed: engine closed the connection: EOF
+presto-core: spawned engine pid 971454 (attempt 2), log /home/mcmanusiang/.local/state/presto/logs/engine-1791456796-2.log
+presto-core: restore: SetQueue { ids: ["6781080934", "1517099633", "1673536443"], start: 1, play: false } -> ok, state Playing at 0 ms
+presto-core: restore: Seek { ms: 40000 } -> ok, state Playing at 0 ms
+presto-core: restore: SetShuffle { on: false } -> ok, state Loading at 40000 ms
+presto-core: restore: SetRepeat { mode: Off } -> ok, state Loading at 40000 ms
+presto-core: restore: SetVolume { volume: 0.5 } -> ok, state Loading at 40000 ms
+presto-core: restore: Pause -> ok, state Loading at 40000 ms
+presto-core: restore: Pause -> ok, state Playing at 40000 ms
+presto-core: restore: Pause -> ok, state Playing at 41000 ms
