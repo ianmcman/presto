@@ -53,7 +53,7 @@ Fixed layout dimensions (exceptions to the scale, structural not spacing):
 | Hero artwork | 200 square |
 | Player bar artwork | 56 |
 | Icon-only button hit target | 32 minimum, transport play/pause 40 |
-| Seek bar thickness | 4 (hover 6) |
+| Seek bar thickness | 4 (hover 8) |
 
 Exceptions: row height 48 and player bar 88 are not on the 8-point ladder by choice of spotifast density; target 32 matches the ladder.
 
@@ -67,7 +67,7 @@ Exactly 4 sizes, 2 weights (Regular 400, Semibold 600).
 |------|------|--------|-------------|
 | Body (rows, buttons, queue, tooltips) | 14 | 400 | 1.5 |
 | Label (secondary text, artist, timestamps, badges, column headers) | 12 | 400 | 1.5 |
-| Heading (shelf titles, row title in player bar, section headers) | 20 | 600 | 1.2 |
+| Heading (shelf titles, section headers) | 20 | 600 | 1.2 |
 | Display (hero title on album/artist/playlist pages) | 32 | 600 | 1.2 |
 
 Rules: row titles use Body 400; the now-playing title uses Body at 600. Time readouts use Label with tabular figures (monospace). No other sizes or weights anywhere. Truncate single-line text with ellipsis and show full text in a tooltip.
@@ -109,7 +109,7 @@ Player bar (D-05), three zones:
 
 Seek: click and drag scrubs, release sends a single Seek command; while dragging show the drag position, not engine position. Keyboard shortcuts port spotifast's map (D-06) minus Spotify-only keys; planner extracts the map from source. Minimum: Space play/pause, Left/Right seek 5s, Up/Down volume, N/P next/previous.
 
-Queue panel (D-07, D-08): header "Queue" (Heading) with close button; "Now Playing" section (Label caps-free, secondary) with one row, then "Up Next" rows. Row: 40 artwork, title/artist, duration. Single click selects, double-click or play button on hover plays from that row. Row context menu / hover actions: Play from here, Play next, Add to queue, Remove. No drag handles (reorder deferred).
+Queue panel (D-07, D-08): header "Queue" (Heading) with close button; "Now Playing" section (Label caps-free, secondary) with one row, then "Up Next" rows. Row: 40 artwork, title/artist, duration. Clicking a row plays it (D-07); a play glyph shows on hover. Row context menu / hover actions: Play from here, Play next, Add to queue, Remove. No drag handles (reorder deferred).
 
 Track list rows (album/playlist/artist top songs): columns number (or playing glyph), title (+ artist when not an album page), duration. Double-click plays from that row (D-09). Hover shows play glyph in the number cell and a row action menu (Play next, Add to queue).
 
@@ -117,7 +117,9 @@ Detail heroes (D-09, D-10): artwork 200 left, right column: Label type ("Album",
 
 Library tabs and Home/Search reuse Phase 4 view models; lists are lazy-paged (page 100) with a spinner row at the end while loading.
 
-Interaction states required on every view: loading (skeleton rows or spinner, no layout jump), loaded, empty, error banner with Retry (from UiErrorKind), offline with cached data shown (non-blocking banner), re-auth banner (Phase 3).
+Focal points: Home, first shelf (top-left card). Search, the search field, then the first result row. Album/playlist/artist pages, hero artwork plus the accent Play button. Library tabs, first list row. Queue panel, the Now Playing row.
+
+Interaction states required on every view: loading (skeleton rows or spinner, no layout jump), loaded, empty, error banner with Try again (from UiErrorKind), offline with cached data shown (non-blocking banner), re-auth banner (Phase 3).
 
 Unavailable tracks (D-11, D-12): dimmed row, "Unavailable" badge (Label, Warning) after the title, click shows inline reason line under the row (and tooltip on badge): reason maps from error kind. Playback skips such rows with a toast. Runtime failure: toast with error kind, row becomes unavailable for the session, auto-skip; if all queue items fail, stop and show toast "Nothing in the queue can be played."
 
@@ -139,7 +141,7 @@ Accessibility: AccessKit is enabled; every icon-only button has a label (tooltip
 | Empty search results | "No results for "{query}"" / "Check the spelling or try a different search." |
 | Empty queue | "Queue is empty" / "Play a song or album to fill it." |
 | Empty Home | "Nothing to show yet" / "Play some music and your recent activity will appear here." |
-| Error banner (generic) | "Couldn't load this. Check your connection and try again." + Retry button |
+| Error banner (generic) | "Couldn't load this. Check your connection and try again." + Try again button |
 | Rate limited | "Apple Music is busy. Retrying shortly." |
 | Unavailable badge | "Unavailable" |
 | Unavailable reason (inline) | "This track can't be played right now. It may not be available in your region or on your plan." |
@@ -150,7 +152,7 @@ Accessibility: AccessKit is enabled; every icon-only button has a label (tooltip
 | Toast after Play next / Add to queue | "Added to Up Next" / "Added to queue" |
 | DEMO chip | "DEMO" ; tooltip "Running against the mock engine. No account needed." |
 | Destructive: Remove from queue | No confirmation (reversible by re-adding) |
-| Destructive: Clear cache (Settings) | "Clear cache": confirm "Clear cached library data and artwork? It will be downloaded again as you browse." buttons "Clear cache" (Destructive) and "Cancel" |
+| Destructive: Clear cache (Settings) | "Clear cache": confirm "Clear cached library data and artwork? It will be downloaded again as you browse." buttons "Clear cache" (Destructive) and "Keep cache" |
 
 Destructive actions in this phase: Clear cache only (Phase 4 behavior surfaced in Settings).
 
