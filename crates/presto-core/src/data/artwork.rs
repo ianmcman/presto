@@ -12,6 +12,21 @@ use std::time::{Duration, Instant, SystemTime};
 pub const ART_CAP: u64 = 500 * 1024 * 1024;
 pub const ART_SIZES: [u32; 3] = [160, 320, 640];
 pub const FAIL_RETRY: Duration = Duration::from_secs(60);
+pub const MAX_ART_BYTES: u64 = 10 * 1024 * 1024;
+
+/// Artwork may only come from Apple's CDN: https, *.mzstatic.com, no userinfo, default port.
+fn url_allowed(url: &str) -> bool {
+    let Ok(u) = reqwest::Url::parse(url) else { return false };
+    #[cfg(test)]
+    if u.scheme() == "http" && u.host_str() == Some("127.0.0.1") {
+        return true; // test stubs only; compiled out of real builds
+    }
+    u.scheme() == "https"
+        && u.username().is_empty()
+        && u.password().is_none()
+        && u.port().is_none()
+        && u.host_str().is_some_and(|h| h.ends_with(".mzstatic.com"))
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ArtState {
@@ -70,6 +85,7 @@ impl ArtCache {
         }
         let http = reqwest::Client::builder()
             .timeout(Duration::from_secs(20))
+            .redirect(reqwest::redirect::Policy::none())
             .build()
             .map_err(io::Error::other)?;
         Ok(Arc::new(ArtCache {
@@ -121,16 +137,25 @@ impl ArtCache {
     }
 
     pub async fn fetch(&self, url: &str) -> io::Result<PathBuf> {
-        let bytes = self
-            .http
-            .get(url)
-            .send()
-            .await
-            .and_then(|r| r.error_for_status())
-            .map_err(io::Error::other)?
-            .bytes()
-            .await
-            .map_err(io::Error::other)?;
+        if !url_allowed(url) {
+            return Err(io::Error::new(io::ErrorKind::PermissionDenied, "artwork url not allowed"));
+        }
+        let mut resp = self.http.get(url).send().await.map_err(io::Error::other)?;
+        if !resp.status().is_success() {
+            return Err(io::Error::other(format!("artwork http {}", resp.status())));
+        }
+        let too_big = || io::Error::other("artwork too large");
+        if resp.content_length().is_some_and(|n| n > MAX_ART_BYTES) {
+            return Err(too_big());
+        }
+        // ponytail: buffers up to 10 MB in memory; artwork is ~100 KB so streaming to disk is unneeded.
+        let mut bytes = Vec::with_capacity(resp.content_length().unwrap_or(0).min(MAX_ART_BYTES) as usize);
+        while let Some(c) = resp.chunk().await.map_err(io::Error::other)? {
+            if bytes.len() as u64 + c.len() as u64 > MAX_ART_BYTES {
+                return Err(too_big());
+            }
+            bytes.extend_from_slice(&c);
+        }
         let fin = file_for(&self.dir, url);
         let (f2, len) = (fin.clone(), bytes.len() as u64);
         tokio::task::spawn_blocking(move || -> io::Result<()> {
@@ -212,6 +237,110 @@ mod tests {
             }
         });
         (base, hits, jh)
+    }
+
+    /// Writes `resp` verbatim to every connection; counts hits.
+    async fn raw_stub(resp: Vec<u8>) -> (String, Arc<AtomicUsize>, tokio::task::JoinHandle<()>) {
+        let l = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", l.local_addr().unwrap());
+        let hits = Arc::new(AtomicUsize::new(0));
+        let h = hits.clone();
+        let jh = tokio::spawn(async move {
+            loop {
+                let Ok((mut s, _)) = l.accept().await else { return };
+                h.fetch_add(1, Ordering::SeqCst);
+                let resp = resp.clone();
+                tokio::spawn(async move {
+                    let mut buf = [0u8; 2048];
+                    let _ = s.read(&mut buf).await;
+                    let _ = s.write_all(&resp).await;
+                    let _ = s.shutdown().await;
+                });
+            }
+        });
+        (base, hits, jh)
+    }
+
+    fn no_len(n: u64) -> Vec<u8> {
+        let mut v = b"HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n".to_vec();
+        v.resize(v.len() + n as usize, 7);
+        v
+    }
+
+    async fn rejected(resp: Vec<u8>) {
+        let (base, _, _j) = raw_stub(resp).await;
+        let t = tempfile::tempdir().unwrap();
+        let c = ArtCache::open(t.path().join("art"), ART_CAP).unwrap();
+        assert!(c.fetch(&format!("{base}/a")).await.is_err());
+        assert!(scan(&t.path().join("art")).is_empty());
+        assert_eq!(c.total_bytes(), 0);
+    }
+
+    #[test]
+    fn url_allowlist() {
+        for ok in [
+            "https://is1-ssl.mzstatic.com/image/a/320x320bb.jpg",
+            "https://is1.mzstatic.com:443/x",
+            "https://IS1.MZSTATIC.COM/x",
+        ] {
+            assert!(url_allowed(ok), "{ok}");
+        }
+        for bad in [
+            "https://mzstatic.com/x",
+            "http://is1-ssl.mzstatic.com/x",
+            "https://evilmzstatic.com/x",
+            "https://mzstatic.com.evil.com/x",
+            "https://user:pw@is1.mzstatic.com/x",
+            "https://is1.mzstatic.com@evil.com/x",
+            "https://is1.mzstatic.com:8443/x",
+            "not a url",
+            "file:///etc/passwd",
+        ] {
+            assert!(!url_allowed(bad), "{bad}");
+        }
+    }
+
+    #[tokio::test]
+    async fn disallowed_url_makes_no_request() {
+        let (base, hits, _j) = stub(100).await;
+        let t = tempfile::tempdir().unwrap();
+        let c = ArtCache::open(t.path().join("art"), ART_CAP).unwrap();
+        let url = base.replace("127.0.0.1", "localhost");
+        assert!(c.fetch(&format!("{url}/a")).await.is_err());
+        assert_eq!(hits.load(Ordering::SeqCst), 0);
+        assert!(scan(&t.path().join("art")).is_empty());
+    }
+
+    #[tokio::test]
+    async fn redirect_not_followed() {
+        let r = b"HTTP/1.1 302 Found\r\nLocation: /ok\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_vec();
+        let (base, hits, _j) = raw_stub(r).await;
+        let t = tempfile::tempdir().unwrap();
+        let c = ArtCache::open(t.path().join("art"), ART_CAP).unwrap();
+        assert!(c.fetch(&format!("{base}/a")).await.is_err());
+        assert_eq!(hits.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn content_length_over_cap_rejected() {
+        let mut r = format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", MAX_ART_BYTES + 1)
+            .into_bytes();
+        r.extend_from_slice(&[7u8; 10]);
+        rejected(r).await;
+    }
+
+    #[tokio::test]
+    async fn streamed_over_cap_rejected() {
+        rejected(no_len(MAX_ART_BYTES + 1)).await;
+    }
+
+    #[tokio::test]
+    async fn streamed_exactly_cap_ok() {
+        let (base, _, _j) = raw_stub(no_len(MAX_ART_BYTES)).await;
+        let t = tempfile::tempdir().unwrap();
+        let c = ArtCache::open(t.path().join("art"), ART_CAP).unwrap();
+        c.fetch(&format!("{base}/a")).await.unwrap();
+        assert_eq!(c.total_bytes(), MAX_ART_BYTES);
     }
 
     async fn ready(c: &Arc<ArtCache>, url: &str) -> ArtState {
