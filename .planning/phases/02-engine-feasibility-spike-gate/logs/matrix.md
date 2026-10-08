@@ -19,5 +19,8 @@ Notes:
 - Playback also passes with `--no-autoplay-switch` and `--allow-throttling` when the window is hidden. The driver starts playback through MusicKit after the profile is signed in, so these switches did not change the outcome in this setup; they stay as defaults.
 
 ## SIGKILL
-Main engine process killed with SIGKILL 20 s into playback (all child processes exited with it). A new engine on the same profile (`after-sigkill`, checklist-after-sigkill-*.md) reported `| session | PASS |` signed_in. Sign-in survives SIGKILL.
+Main engine process killed with SIGKILL 20 s into playback (not all children are guaranteed to exit: a later run found an orphaned engine, pid 835551, ppid 1, still holding the profile and socket about 12 min after this test; see Orphan note). A new engine on the same profile (`after-sigkill`, checklist-after-sigkill-*.md) reported `| session | PASS |` signed_in. Sign-in survives SIGKILL.
 Earlier `sigkill-victim` checklists in this directory are from aborted attempts where the kill pattern did not match; only the last `sigkill-victim` run and `after-sigkill` count.
+
+## Orphan note
+After the SIGKILL test an orphaned engine (pid 835551, ppid 1) kept running and held the same profile and socket. The first listen run (`listen`, checklist-listen-1791427310.md) then failed: engine SIGTRAP at playback start, playback/events FAIL "Connection reset by peer". coredumpctl shows electron SIGTRAP at 21:36, 21:37, 21:41. After the orphan was killed, `listen2` passed all 6 (reached 155000 ms, seek 150000). Correlation only; cause unconfirmed.
