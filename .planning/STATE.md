@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 4 context gathered
-last_updated: "2026-10-08T12:47:37.465Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-10-08T13:18:56.860Z"
 progress:
   total_phases: 7
   completed_phases: 3
-  total_plans: 25
-  completed_plans: 25
+  total_plans: 34
+  completed_plans: 26
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-07)
 
 **Core value:** Full-catalog Apple Music playback and library browsing from a fast native Linux UI, without an Apple Developer account.
-**Current focus:** Phase 03 — core-backend-supervisor-auth
+**Current focus:** Phase 04 — data-layer-and-cache
 
 ## Current Position
 
-Phase: 4
-Plan: Not started
+Phase: 04 (data-layer-and-cache) — EXECUTING
+Plan: 2 of 9
 
 ## Performance Metrics
 
@@ -48,6 +48,7 @@ None yet.
 - [Phase 03]: Load restore runs muted; snapshot volume restored on every restore exit
 - [Phase 03]: Live restore Seek timeout is small-target class (targets under ~3 s never answered); mock --seek-hang reproduces
 - [Phase 03]: Only a failed SetQueue ends a restore; must-pause restores send Pause first and stay muted while Playing or Loading
+- [Phase 04]: Cache dir resolved by pure cache_base helper; store is disposable (recreate on bad version/corruption)
 
 ### Pending Todos
 
@@ -60,6 +61,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-08T12:47:37.463Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-data-layer-and-cache/04-CONTEXT.md
+Last session: 2026-10-08T13:18:56.859Z
+Stopped at: Completed 04-03-PLAN.md
+Resume file: None

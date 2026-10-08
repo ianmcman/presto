@@ -36,8 +36,8 @@
 - [ ] **DATA-02**: User can search the catalog
 - [ ] **DATA-03**: User can see recently played and a recommendations home
 - [ ] **DATA-04**: Storefront is read from the account and applied to catalog requests
-- [ ] **DATA-05**: Proxy errors and rate limits surface as UI states
-- [ ] **DATA-06**: Artwork and library snapshots are cached on disk so browsing works offline-ish
+- [x] **DATA-05**: Proxy errors and rate limits surface as UI states
+- [x] **DATA-06**: Artwork and library snapshots are cached on disk so browsing works offline-ish
 
 ### Playback UI
 
@@ -111,8 +111,8 @@
 | DATA-02 | Phase 4 | Pending |
 | DATA-03 | Phase 4 | Pending |
 | DATA-04 | Phase 4 | Pending |
-| DATA-05 | Phase 4 | Pending |
-| DATA-06 | Phase 4 | Pending |
+| DATA-05 | Phase 4 | Complete |
+| DATA-06 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 30 total
