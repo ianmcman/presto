@@ -1,0 +1,15 @@
+{
+  "name": "presto-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Presto engine: castlabs Electron hosting music.apple.com, speaking presto-ipc over a Unix socket",
+  "main": "main.js",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/"
+  },
+  "devDependencies": {
+    "electron": "github:castlabs/electron-releases#v44.5.1+wvcus"
+  }
+}
