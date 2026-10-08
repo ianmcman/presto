@@ -192,4 +192,57 @@ impl Backend {
     pub fn shutdown(&self) {
         self.rt.block_on(self.core.clone().shutdown());
     }
+
+    pub fn spawn<F: std::future::Future<Output = ()> + Send + 'static>(&self, f: F) {
+        self.rt.spawn(f);
+    }
+
+    pub fn enter(&self) -> tokio::runtime::EnterGuard<'_> {
+        self.rt.enter()
+    }
+
+    pub fn control(&self, ctx: egui::Context) -> std::sync::Arc<dyn crate::control::Control> {
+        std::sync::Arc::new(BackendControl {
+            rt: self.rt.handle().clone(),
+            core: self.core.clone(),
+            data: self.data.clone(),
+            tx: self.tx.clone(),
+            ctx,
+        })
+    }
+}
+
+struct BackendControl {
+    rt: tokio::runtime::Handle,
+    core: presto_core::CoreHandle,
+    data: presto_core::data::DataHandle,
+    tx: Sender<Event>,
+    ctx: egui::Context,
+}
+
+impl crate::control::Control for BackendControl {
+    fn send(&self, c: Command) {
+        let (core, tx) = (self.core.clone(), self.tx.clone());
+        self.rt.spawn(async move {
+            send(&core, &tx, c).await;
+        });
+    }
+
+    fn raise(&self) {
+        self.ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
+        self.ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+        self.ctx.request_repaint();
+    }
+
+    fn quit(&self) {
+        self.ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+    }
+
+    fn art(&self, url: &str) -> Option<std::path::PathBuf> {
+        let _g = self.rt.enter();
+        match self.data.art().get(&presto_core::data::artwork::expand(url, 600)) {
+            presto_core::data::artwork::ArtState::Ready(p) => Some(p),
+            _ => None,
+        }
+    }
 }
