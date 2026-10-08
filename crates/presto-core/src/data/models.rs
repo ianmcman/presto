@@ -33,6 +33,22 @@ pub struct Item {
     pub artwork: Option<Artwork>,
     /// Raw playParams, for Phase 5.
     pub play_params: Option<Value>,
+    pub release_date: Option<String>,
+    pub track_count: Option<u32>,
+    /// Songs without playParams are unplayable (Apple omits them; live check in 05-11).
+    pub playable: bool,
+}
+
+/// Album, playlist or artist page: the head plus its inline related lists.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct Detail {
+    pub head: Item,
+    pub tracks: Vec<Item>,
+    pub top_songs: Vec<Item>,
+    pub albums: Vec<Item>,
+    pub singles: Vec<Item>,
+    /// Library resources: relationships.catalog.data[0].id
+    pub catalog_id: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -104,6 +120,8 @@ pub fn parse_item(v: &Value) -> Option<Item> {
             height: w.get("height").and_then(Value::as_u64).map(|n| n as u32),
         })
     });
+    let play_params = a.get("playParams").cloned();
+    let playable = kind != ItemKind::Song || play_params.is_some();
     Some(Item {
         id,
         kind,
@@ -113,13 +131,39 @@ pub fn parse_item(v: &Value) -> Option<Item> {
         album: s(a, "albumName"),
         duration_ms: a.get("durationInMillis").and_then(Value::as_u64),
         artwork,
-        play_params: a.get("playParams").cloned(),
+        play_params,
+        release_date: s(a, "releaseDate"),
+        track_count: a.get("trackCount").and_then(Value::as_u64).map(|n| n as u32),
+        playable,
     })
 }
 
 impl Rows for Item {
     fn parse_page(v: &Value) -> Page<Self> {
         page(v, data_items(v).filter_map(parse_item).collect())
+    }
+}
+
+impl Rows for Detail {
+    fn parse_page(v: &Value) -> Page<Self> {
+        let items = data_items(v)
+            .next()
+            .and_then(|d| {
+                let list = |p: &str| -> Vec<Item> {
+                    data_items(d.pointer(p).unwrap_or(&Value::Null)).filter_map(parse_item).collect()
+                };
+                Some(Detail {
+                    head: parse_item(d)?,
+                    tracks: list("/relationships/tracks"),
+                    top_songs: list("/views/top-songs"),
+                    albums: list("/views/full-albums"),
+                    singles: list("/views/singles"),
+                    catalog_id: d.pointer("/relationships/catalog/data/0/id").and_then(Value::as_str).map(str::to_owned),
+                })
+            })
+            .into_iter()
+            .collect();
+        Page { items, next: None, total: None }
     }
 }
 
@@ -254,6 +298,40 @@ mod tests {
         let r = parse_search("a", &json!({"results": {"library-songs": {"data": [song("s2")]}}}));
         assert_eq!(r.songs.len(), 1);
         assert!(r.playlists.is_empty());
+    }
+
+    #[test]
+    fn item_fields() {
+        let i = parse_item(&json!({"id":"al3","type":"albums","attributes":{"name":"N","releaseDate":"2023-10-06","trackCount":3}})).unwrap();
+        assert_eq!((i.release_date.as_deref(), i.track_count, i.playable), (Some("2023-10-06"), Some(3), true));
+    }
+
+    #[test]
+    fn song_playable() {
+        assert!(parse_item(&song("s1")).unwrap().playable);
+        assert!(!parse_item(&json!({"id":"s","type":"songs","attributes":{}})).unwrap().playable);
+        assert!(parse_item(&json!({"id":"a","type":"albums","attributes":{}})).unwrap().playable);
+    }
+
+    #[test]
+    fn detail_album() {
+        let v = json!({"data":[{"id":"al3","type":"albums","attributes":{"name":"A"},
+            "relationships":{"tracks":{"data":[song("s8"),song("s9")]}}}]});
+        let p = Detail::parse_page(&v);
+        let d = &p.items[0];
+        assert_eq!((d.head.id.as_str(), d.tracks.len(), d.top_songs.len(), d.albums.len(), d.singles.len()), ("al3", 2, 0, 0, 0));
+        assert_eq!(p.next, None);
+    }
+
+    #[test]
+    fn detail_artist_and_catalog_id() {
+        let al = |id: &str| json!({"id": id, "type": "albums", "attributes": {}});
+        let v = json!({"data":[{"id":"a1","type":"library-artists",
+            "views":{"top-songs":{"data":[song("s1")]},"full-albums":{"data":[al("x")]},"singles":{"data":[al("y")]}},
+            "relationships":{"catalog":{"data":[{"id":"a9","type":"artists"}]}}}]});
+        let d = Detail::parse_page(&v).items.remove(0);
+        assert_eq!((d.top_songs.len(), d.albums.len(), d.singles.len()), (1, 1, 1));
+        assert_eq!(d.catalog_id.as_deref(), Some("a9"));
     }
 
     #[test]

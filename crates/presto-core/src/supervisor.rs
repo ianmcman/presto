@@ -308,7 +308,13 @@ impl Actor {
                 }
                 return effect == AuthEffect::ShowWindow;
             }
-            Event::Error { error } => eprintln!("presto-core: engine error: {error:?}"),
+            Event::Error { error } => {
+                eprintln!("presto-core: engine error: {error:?}");
+                self.set(|c| {
+                    c.engine_errors += 1;
+                    c.last_engine_error = Some(error);
+                });
+            }
             Event::BridgeReady { .. } => {}
             other => self.set(|c| c.player.apply(&other)),
         }

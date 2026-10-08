@@ -5,7 +5,10 @@ use presto_ipc::ApiRequest;
 use serde::Serialize;
 
 use super::error::UiErrorKind;
+use super::models::{Item, ItemKind};
 
+/// Placeholder for the storefront in paths; DataHandle substitutes it.
+pub const SF: &str = "{sf}";
 pub const TTL: Duration = Duration::from_secs(3600);
 pub const MAX_AUTO_RETRIES: u8 = 3;
 pub const RETRY_LADDER_MS: [u64; 3] = [5_000, 10_000, 20_000];
@@ -64,6 +67,10 @@ pub enum ViewKey {
     Recommendations,
     /// See all page; unused while 04-02 found no paged contents route.
     Shelf { path: String },
+    /// Album or playlist track list.
+    Tracks { path: String },
+    /// Album, playlist or artist head with inline lists. Not paged.
+    Detail { path: String, query: Vec<(String, String)> },
 }
 
 impl ViewKey {
@@ -80,14 +87,14 @@ impl ViewKey {
             ),
             ViewKey::RecentlyPlayed => "/v1/me/recent/played".into(),
             ViewKey::Recommendations => "/v1/me/recommendations".into(),
-            ViewKey::Shelf { path } => path.clone(),
+            ViewKey::Shelf { path } | ViewKey::Tracks { path } | ViewKey::Detail { path, .. } => path.clone(),
         }
     }
 
     /// Library max is 100 (101 is rejected, 04-02). Others stay at 10.
     pub fn page_size(&self) -> u32 {
         match self {
-            ViewKey::Library { .. } => 100,
+            ViewKey::Library { .. } | ViewKey::Tracks { .. } => 100,
             _ => 10,
         }
     }
@@ -98,6 +105,12 @@ impl ViewKey {
 
     pub fn request(&self, offset: u32) -> ApiRequest {
         let mut r = ApiRequest::get(self.path());
+        if let ViewKey::Detail { query, .. } = self {
+            for (k, v) in query {
+                r.query.insert(k.clone(), v.clone());
+            }
+            return r;
+        }
         r.query.insert("limit".into(), self.page_size().to_string());
         r.query.insert("offset".into(), offset.to_string());
         if let ViewKey::Library { kind, sort } = self {
@@ -107,6 +120,41 @@ impl ViewKey {
         }
         r
     }
+}
+
+fn detail_base(item: &Item) -> Option<String> {
+    let kind = match item.kind {
+        ItemKind::Album => "albums",
+        ItemKind::Playlist => "playlists",
+        _ => return None,
+    };
+    Some(if item.library {
+        format!("/v1/me/library/{kind}/{}", item.id)
+    } else {
+        format!("/v1/catalog/{SF}/{kind}/{}", item.id)
+    })
+}
+
+pub fn tracks_key(item: &Item) -> Option<ViewKey> {
+    detail_base(item).map(|p| ViewKey::Tracks { path: format!("{p}/tracks") })
+}
+
+pub fn detail_key(item: &Item) -> Option<ViewKey> {
+    let q = |k: &str, v: &str| vec![(k.to_owned(), v.to_owned())];
+    if let Some(path) = detail_base(item) {
+        return Some(ViewKey::Detail { path, query: vec![] });
+    }
+    if item.kind != ItemKind::Artist {
+        return None;
+    }
+    Some(if item.library {
+        ViewKey::Detail { path: format!("/v1/me/library/artists/{}", item.id), query: q("include", "catalog") }
+    } else {
+        ViewKey::Detail {
+            path: format!("/v1/catalog/{SF}/artists/{}", item.id),
+            query: q("views", "top-songs,full-albums,singles"),
+        }
+    })
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
@@ -221,6 +269,27 @@ mod tests {
     fn sorts_list() {
         assert_eq!(sorts(LibKind::Artists), vec![Sort::Default, Sort::NameAsc, Sort::NameDesc]);
         assert_eq!(sorts(LibKind::Songs).len(), 5);
+    }
+
+    fn it(id: &str, kind: ItemKind, library: bool) -> Item {
+        Item {
+            id: id.into(), kind, library, name: String::new(), subtitle: None, album: None, duration_ms: None,
+            artwork: None, play_params: None, release_date: None, track_count: None, playable: true,
+        }
+    }
+
+    #[test]
+    fn detail_and_track_keys() {
+        let k = tracks_key(&it("al3", ItemKind::Album, false)).unwrap();
+        assert_eq!((k.path().as_str(), k.page_size()), ("/v1/catalog/{sf}/albums/al3/tracks", 100));
+        assert_eq!(tracks_key(&it("p.x", ItemKind::Playlist, true)).unwrap().path(), "/v1/me/library/playlists/p.x/tracks");
+        let k = detail_key(&it("a1", ItemKind::Artist, false)).unwrap();
+        let r = k.request(0);
+        assert_eq!(k.path(), "/v1/catalog/{sf}/artists/a1");
+        assert_eq!(r.query["views"], "top-songs,full-albums,singles");
+        assert!(!r.query.contains_key("limit") && !r.query.contains_key("offset"));
+        assert_eq!(detail_key(&it("a1", ItemKind::Artist, true)).unwrap().request(0).query["include"], "catalog");
+        assert!(tracks_key(&it("s", ItemKind::Song, false)).is_none() && detail_key(&it("s", ItemKind::Song, false)).is_none());
     }
 
     #[test]

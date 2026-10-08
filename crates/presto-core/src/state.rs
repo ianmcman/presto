@@ -30,4 +30,7 @@ pub struct CoreState {
     pub auth: Option<AuthState>,
     pub queue: QueueMirror,
     pub player: PlayerMirror,
+    /// Runtime engine error events seen so far (D-12).
+    pub engine_errors: u64,
+    pub last_engine_error: Option<presto_ipc::IpcError>,
 }
