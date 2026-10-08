@@ -66,7 +66,7 @@ Plans:
 **Plans**: 6 plans
 
 Plans:
-- [ ] 03-01-PLAN.md: Protocol 1.1 (bridge_ready, show_window, set_queue play) and mock support (wave 1)
+- [x] 03-01-PLAN.md: Protocol 1.1 (bridge_ready, show_window, set_queue play) and mock support (wave 1)
 - [x] 03-02-PLAN.md: presto-core crate: 0700 paths, pidfile sweep, backoff (wave 1)
 - [x] 03-03-PLAN.md: Engine: bridge path override, bridge_ready, Rust-driven window, close-to-hide, hard exit (wave 1)
 - [ ] 03-04-PLAN.md: Supervisor actor: spawn, handshake, heartbeat, backoff restart, drift (wave 2)
