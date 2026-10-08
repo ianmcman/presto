@@ -103,7 +103,7 @@ Plans:
 - [x] 04-06-PLAN.md: Models, view keys, sort support, list state, TTL and retry policy (wave 2)
 - [x] 04-07-PLAN.md: DataHandle: cache-then-revalidate, lazy paging, Home, error states (wave 3)
 - [x] 04-08-PLAN.md: Debounced search with hints, scope and history (wave 3)
-- [ ] 04-09-PLAN.md: Lifecycle: offline cache, D-04 revalidation, sign-out wipe, Clear cache (wave 4)
+- [x] 04-09-PLAN.md: Lifecycle: offline cache, D-04 revalidation, sign-out wipe, Clear cache (wave 4)
 
 ### Phase 5: Playback UI and Demo Mode
 **Goal**: The ported egui UI lets the user browse and play, and runs against the mock engine with no account. (Outline; largest phase, may split by view group.)
