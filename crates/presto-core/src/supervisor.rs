@@ -361,27 +361,37 @@ impl Actor {
                     if let Some(r) = &mut self.restore {
                         r.full = true;
                     }
-                } else {
+                } else if load {
                     self.end_restore();
                 }
+                // other steps: verify retries the seek and the play state (03-13)
             }
         }
     }
 
-    /// Ends a restore. A load restore first sends the snapshot volume back; the next pump clears it.
+    /// Ends a restore. A load restore puts the snapshot volume back; one that must end paused (D-01, D-04) sends Pause first and stays muted while the player is Playing or Loading.
     fn end_restore(&mut self) {
-        match self.restore.as_mut().and_then(|r| r.unmute.take()) {
-            Some(volume) => {
-                if let Some(r) = &mut self.restore {
-                    r.verify = None;
-                }
-                self.steps = Some(VecDeque::from([Command::SetVolume { volume }]));
-            }
-            None => {
-                self.restore = None;
-                self.steps = None;
-            }
+        let state = self.state_tx.borrow().player.state;
+        let Some(r) = self.restore.as_mut() else { return };
+        r.verify = None;
+        let resume = r.snap.was_playing && r.resume_allowed;
+        let Some(volume) = r.unmute.take() else {
+            self.restore = None;
+            self.steps = None;
+            return;
+        };
+        let busy = matches!(state, PlayState::Playing | PlayState::Loading);
+        let mut v = VecDeque::new();
+        if !resume {
+            v.push_back(Command::Pause);
         }
+        if resume || !busy {
+            v.push_back(Command::SetVolume { volume });
+        } else {
+            // ponytail: stays muted rather than risk audio on a paused restore; the next SetVolume from the user unmutes
+            eprintln!("presto-core: restore: left muted, state {state:?}");
+        }
+        self.steps = Some(v);
     }
 
     fn begin_restore(&mut self) {
@@ -396,7 +406,7 @@ impl Actor {
             v.push_back(Command::SetVolume { volume: 0.0 });
             v.push_back(Command::SetQueue { ids: s.ids.clone(), start: s.index, play: false });
             v.push_back(Command::SetVolume { volume: 0.0 });
-            if s.position_ms > 0 {
+            if s.position_ms > SEEK_TOLERANCE_MS {
                 v.push_back(Command::Seek { ms: s.position_ms });
             }
             v.push_back(Command::SetShuffle { on: s.shuffle });
@@ -454,15 +464,14 @@ impl Actor {
                 return VerifyStep::Wait;
             }
             if v.seek_tries >= SEEK_TRIES {
-                eprintln!(
-                    "presto-core: restore: not confirmed after {SEEK_TRIES} tries (at {pos} ms, want {} ms, state {state:?})",
-                    v.target
-                );
-                return VerifyStep::Done;
+                eprintln!("presto-core: restore: seek not confirmed after {SEEK_TRIES} tries (at {pos} ms, want {} ms), checking state only", v.target);
+                v.target = 0;
+                v.seek_since = None;
+            } else {
+                v.seek_tries += 1;
+                v.seek_since = None;
+                return VerifyStep::Retry(VecDeque::from([Command::Seek { ms: v.target }]));
             }
-            v.seek_tries += 1;
-            v.seek_since = None;
-            return VerifyStep::Retry(VecDeque::from([Command::Seek { ms: v.target }]));
         }
         let want = if v.resume { PlayState::Playing } else { PlayState::Paused };
         if state != want {
