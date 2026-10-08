@@ -402,6 +402,23 @@ async fn wipe(i: &Arc<Inner>, reload: bool) {
     }
 }
 
+fn offline_keys<T: Slotted>(i: &Inner) -> Vec<ViewKey> {
+    let slots = T::slots(i).lock().unwrap();
+    let off = |sl: &Slot<T>| sl.tx.borrow().error.as_ref().is_some_and(|e| matches!(e.kind, UiErrorKind::Offline));
+    slots.iter().filter(|(_, sl)| off(sl)).map(|(k, _)| k.clone()).collect()
+}
+
+/// Views opened before the engine was ready failed with Offline; only the focused one is refreshed,
+/// so a page with several views (Home) would leave the rest failed until a manual retry.
+fn retry_offline(i: &Arc<Inner>) {
+    let focused = i.focused.lock().unwrap().clone();
+    let keys = [offline_keys::<Item>(i), offline_keys::<Shelf>(i), offline_keys::<Detail>(i)].concat();
+    let h = DataHandle { inner: i.clone() };
+    for k in keys.iter().filter(|k| Some(*k) != focused.as_ref()) {
+        h.retry(k);
+    }
+}
+
 async fn on_transition(i: &Arc<Inner>, prev: &CoreState, cur: &CoreState) {
     if signed_out_transition(prev, cur) {
         return wipe(i, false).await;
@@ -418,6 +435,7 @@ async fn on_transition(i: &Arc<Inner>, prev: &CoreState, cur: &CoreState) {
         // D-04: other views revalidate on next open; only the focused one now
         i.invalidated_at_ms.store(now_ms(), Ordering::Relaxed);
         refresh_focused(i);
+        retry_offline(i);
     }
 }
 
