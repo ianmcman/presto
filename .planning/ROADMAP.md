@@ -121,7 +121,7 @@ Plans:
 - [x] 05-01-PLAN.md: presto crate, egui fork pins, fastframe theme/icons/i18n, CLI (wave 1)
 - [x] 05-02-PLAN.md: Mock catalog for every view, unavailable and failing tracks (wave 1)
 - [ ] 05-03-PLAN.md: Core detail data, track lists, playable flag, engine errors in CoreState (wave 2)
-- [ ] 05-04-PLAN.md: Pure playback, seek, volume, skip guard and queue-edit logic (wave 2)
+- [x] 05-04-PLAN.md: Pure playback, seek, volume, skip guard and queue-edit logic (wave 2)
 - [ ] 05-05-PLAN.md: Shared widgets and toasts (wave 2)
 - [ ] 05-06-PLAN.md: Backend over presto-core, demo/real launch, UI contract types (wave 3)
 - [ ] 05-07-PLAN.md: App shell, sidebar, status panels, shortcuts, main (wave 4)
