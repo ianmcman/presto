@@ -1,0 +1,179 @@
+---
+source: crates/presto-ipc/tests/ctl_schema.rs
+expression: "schemars::schema_for!(presto_ipc::ctl::CtlReply)"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CtlReply",
+  "type": "object",
+  "properties": {
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "id": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "proto": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "status": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Status"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "proto",
+    "id",
+    "ok"
+  ],
+  "$defs": {
+    "AuthState": {
+      "type": "string",
+      "enum": [
+        "signed_out",
+        "signing_in",
+        "signed_in",
+        "expired"
+      ]
+    },
+    "EngineLabel": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "starting",
+        "restarting",
+        "failed"
+      ]
+    },
+    "RepeatMode": {
+      "type": "string",
+      "enum": [
+        "off",
+        "one",
+        "all"
+      ]
+    },
+    "Status": {
+      "type": "object",
+      "properties": {
+        "auth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AuthState"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "duration_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "engine": {
+          "$ref": "#/$defs/EngineLabel"
+        },
+        "position_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "proto": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "repeat": {
+          "$ref": "#/$defs/RepeatMode"
+        },
+        "shuffle": {
+          "type": "boolean"
+        },
+        "state": {
+          "$ref": "#/$defs/StatusState"
+        },
+        "track": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StatusTrack"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "volume": {
+          "type": "integer",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "proto",
+        "state",
+        "position_ms",
+        "duration_ms",
+        "volume",
+        "shuffle",
+        "repeat",
+        "engine"
+      ]
+    },
+    "StatusState": {
+      "type": "string",
+      "enum": [
+        "playing",
+        "paused",
+        "stopped",
+        "loading"
+      ]
+    },
+    "StatusTrack": {
+      "type": "object",
+      "properties": {
+        "album": {
+          "type": "string"
+        },
+        "artist": {
+          "type": "string"
+        },
+        "artwork_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "artist",
+        "album"
+      ]
+    }
+  }
+}

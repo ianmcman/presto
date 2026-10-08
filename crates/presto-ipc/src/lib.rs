@@ -1,6 +1,7 @@
 //! Presto engine IPC protocol. See docs/PROTOCOL.md.
 
 mod command;
+pub mod ctl;
 mod event;
 mod fault;
 mod frame;

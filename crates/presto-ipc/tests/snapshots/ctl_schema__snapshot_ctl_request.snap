@@ -1,0 +1,268 @@
+---
+source: crates/presto-ipc/tests/ctl_schema.rs
+expression: "schemars::schema_for!(presto_ipc::ctl::CtlRequest)"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CtlRequest",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "proto": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "play"
+        }
+      },
+      "required": [
+        "op"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "pause"
+        }
+      },
+      "required": [
+        "op"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "toggle"
+        }
+      },
+      "required": [
+        "op"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "next"
+        }
+      },
+      "required": [
+        "op"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "prev"
+        }
+      },
+      "required": [
+        "op"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "stop"
+        }
+      },
+      "required": [
+        "op"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "op": {
+          "type": "string",
+          "const": "seek"
+        }
+      },
+      "required": [
+        "op",
+        "ms"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "ms": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "op": {
+          "type": "string",
+          "const": "seek_by"
+        }
+      },
+      "required": [
+        "op",
+        "ms"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "volume"
+        },
+        "pct": {
+          "type": "integer",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "op",
+        "pct"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "volume_by"
+        },
+        "pct": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "required": [
+        "op",
+        "pct"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "on": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "op": {
+          "type": "string",
+          "const": "shuffle"
+        }
+      },
+      "required": [
+        "op"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RepeatMode"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "op": {
+          "type": "string",
+          "const": "repeat"
+        }
+      },
+      "required": [
+        "op"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "status"
+        }
+      },
+      "required": [
+        "op"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "subscribe"
+        }
+      },
+      "required": [
+        "op"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "raise"
+        }
+      },
+      "required": [
+        "op"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "quit"
+        }
+      },
+      "required": [
+        "op"
+      ]
+    }
+  ],
+  "required": [
+    "proto",
+    "id"
+  ],
+  "$defs": {
+    "RepeatMode": {
+      "type": "string",
+      "enum": [
+        "off",
+        "one",
+        "all"
+      ]
+    }
+  }
+}
