@@ -23,6 +23,10 @@ use tokio::time::{Instant, MissedTickBehavior, interval, sleep, sleep_until, tim
 const SEEK_TOLERANCE_MS: u64 = 2000;
 const SEEK_SETTLE: Duration = Duration::from_millis(1500);
 const SEEK_TRIES: u32 = 3;
+const STATE_SETTLE: Duration = Duration::from_millis(500);
+const STATE_TRIES: u32 = 5;
+const VERIFY_HOLD: Duration = Duration::from_millis(2000);
+const VERIFY_DEADLINE: Duration = Duration::from_secs(20);
 
 type Tx = oneshot::Sender<Outcome>;
 
@@ -70,8 +74,12 @@ struct Restore {
 struct Verify {
     target: u64,
     resume: bool,
-    tries: u32,
-    since: Option<Instant>,
+    started: Instant,
+    seek_tries: u32,
+    seek_since: Option<Instant>,
+    state_tries: u32,
+    state_sent: Option<Instant>,
+    ok_since: Option<Instant>,
 }
 
 enum VerifyStep {
@@ -233,7 +241,7 @@ struct Actor {
     drift: bool,
     steps: Option<VecDeque<Command>>,
     /// (request id, is the SetQueue load) of the restore step in flight.
-    inflight: Option<(u64, bool)>,
+    inflight: Option<(u64, Command)>,
 }
 
 impl Actor {
@@ -324,8 +332,17 @@ impl Actor {
     }
 
     /// A restore step answered (or timed out).
-    fn step_result(&mut self, load: bool, o: &Outcome) {
+    fn step_result(&mut self, cmd: &Command, o: &Outcome) {
         self.inflight = None;
+        let load = matches!(cmd, Command::SetQueue { .. });
+        {
+            let st = self.state_tx.borrow();
+            let res = match o {
+                Outcome::Ok { .. } => "ok".to_string(),
+                Outcome::Err { error } => format!("err {error:?}"),
+            };
+            eprintln!("presto-core: restore: {cmd:?} -> {res}, state {:?} at {} ms", st.player.state, st.player.position_ms);
+        }
         match o {
             Outcome::Ok { .. } => {
                 let ids_match = self.restore.as_ref().is_none_or(|r| self.state_tx.borrow().queue.ids() == r.snap.ids);
@@ -373,7 +390,16 @@ impl Actor {
         } else if !resume && playing {
             v.push_back(Command::Pause);
         }
-        let verify = load.then_some(Verify { target: s.position_ms, resume, tries: 0, since: None });
+        let verify = load.then_some(Verify {
+            target: s.position_ms,
+            resume,
+            started: Instant::now(),
+            seek_tries: 0,
+            seek_since: None,
+            state_tries: 0,
+            state_sent: None,
+            ok_since: None,
+        });
         if load {
             // a stale pre-crash position must not pass verification
             self.set(|c| c.player.position_ms = 0);
@@ -390,31 +416,55 @@ impl Actor {
             let st = self.state_tx.borrow();
             (st.player.position_ms, st.player.state)
         };
-        // only a lost seek lands short; a playing restore runs ahead legitimately
-        let landed = pos + SEEK_TOLERANCE_MS >= v.target;
-        let state_ok = if v.resume { state == PlayState::Playing } else { state == PlayState::Paused };
-        if landed && state_ok {
+        let now = Instant::now();
+        if v.started.elapsed() >= VERIFY_DEADLINE {
+            eprintln!("presto-core: restore: not confirmed within 20 s (at {pos} ms, want {} ms, state {state:?})", v.target);
             return VerifyStep::Done;
         }
-        let since = *v.since.get_or_insert(Instant::now());
-        if since.elapsed() < SEEK_SETTLE {
+        // MusicKit drops Play/Pause/Seek-sensitive work while loading
+        if state == PlayState::Loading {
+            v.ok_since = None;
+            v.seek_since = None;
             return VerifyStep::Wait;
         }
-        if v.tries >= SEEK_TRIES {
-            eprintln!(
-                "presto-core: restore: not confirmed after {SEEK_TRIES} tries (at {pos} ms, want {} ms, state {state:?})",
-                v.target
-            );
-            return VerifyStep::Done;
+        // only a lost seek lands short; a playing restore runs ahead legitimately
+        if pos + SEEK_TOLERANCE_MS < v.target {
+            v.ok_since = None;
+            let since = *v.seek_since.get_or_insert(now);
+            if since.elapsed() < SEEK_SETTLE {
+                return VerifyStep::Wait;
+            }
+            if v.seek_tries >= SEEK_TRIES {
+                eprintln!(
+                    "presto-core: restore: not confirmed after {SEEK_TRIES} tries (at {pos} ms, want {} ms, state {state:?})",
+                    v.target
+                );
+                return VerifyStep::Done;
+            }
+            v.seek_tries += 1;
+            v.seek_since = None;
+            return VerifyStep::Retry(VecDeque::from([Command::Seek { ms: v.target }]));
         }
-        v.tries += 1;
-        v.since = None;
-        let mut steps = VecDeque::new();
-        if v.target > 0 {
-            steps.push_back(Command::Seek { ms: v.target });
+        let want = if v.resume { PlayState::Playing } else { PlayState::Paused };
+        if state != want {
+            v.ok_since = None;
+            if v.state_sent.is_some_and(|t| t.elapsed() < STATE_SETTLE) {
+                return VerifyStep::Wait;
+            }
+            if v.state_tries >= STATE_TRIES {
+                eprintln!("presto-core: restore: state not confirmed after 5 tries (state {state:?})");
+                return VerifyStep::Done;
+            }
+            v.state_tries += 1;
+            v.state_sent = Some(now);
+            let cmd = if v.resume { Command::Play } else { Command::Pause };
+            return VerifyStep::Retry(VecDeque::from([cmd]));
         }
-        steps.push_back(if v.resume { Command::Play } else { Command::Pause });
-        VerifyStep::Retry(steps)
+        if now.duration_since(*v.ok_since.get_or_insert(now)) >= VERIFY_HOLD {
+            VerifyStep::Done
+        } else {
+            VerifyStep::Wait
+        }
     }
 
     /// Runs after every event: starts and advances the restore, announces Ready, flushes queued work.
@@ -434,10 +484,9 @@ impl Actor {
             let Some(steps) = &mut self.steps else { break };
             match steps.pop_front() {
                 Some(cmd) => {
-                    let load = matches!(cmd, Command::SetQueue { .. });
                     let (tx, _rx) = oneshot::channel();
-                    let id = s.send(Job::Cmd(cmd), tx).await?;
-                    self.inflight = Some((id, load));
+                    let id = s.send(Job::Cmd(cmd.clone()), tx).await?;
+                    self.inflight = Some((id, cmd));
                 }
                 None => match self.verify_step() {
                     VerifyStep::Wait => break,
@@ -640,8 +689,8 @@ impl Actor {
                     for id in late {
                         if let Some((tx, _)) = s.pending.remove(&id) {
                             let o = Outcome::Err { error: IpcError::new(ErrorKind::Timeout, "engine did not answer in time") };
-                            if let Some((_, load)) = self.inflight.filter(|(i, _)| *i == id) {
-                                self.step_result(load, &o);
+                            if let Some((_, cmd)) = self.inflight.take_if(|(i, _)| *i == id) {
+                                self.step_result(&cmd, &o);
                             }
                             let _ = tx.send(o);
                         }
@@ -656,8 +705,8 @@ impl Actor {
                         }
                     }
                     Frame::Res { id, outcome } => {
-                        if let Some((_, load)) = self.inflight.filter(|(i, _)| *i == id) {
-                            self.step_result(load, &outcome);
+                        if let Some((_, cmd)) = self.inflight.take_if(|(i, _)| *i == id) {
+                            self.step_result(&cmd, &outcome);
                         }
                         self.on_outcome(&outcome);
                         if let Some((tx, _)) = s.pending.remove(&id) {
