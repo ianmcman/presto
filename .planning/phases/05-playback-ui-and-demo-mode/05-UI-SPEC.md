@@ -77,23 +77,25 @@ Rules: row titles use Body 400; the now-playing title uses Body at 600. Time rea
 
 ## Color
 
+Palette source: Apple Music red for the accent (#FA243C) and Apple's iOS/macOS system dark colors (systemBackground, secondarySystemBackground, tertiarySystemBackground, systemGray, systemRed, systemOrange) for the rest. Values are from memory of Apple's HIG, not fetched; verify against Apple's published values. fastframe-theme still wins where it supplies a value.
+
 | Role | Value | Usage |
 |------|-------|-------|
-| Dominant (60%) | #121214 | Central panel, page background |
-| Secondary (30%) | #1C1C20 | Sidebar, player bar, queue panel, cards, hovered rows (#26262B) |
-| Text primary | #F2F2F5 | Titles, body |
-| Text secondary | #9A9AA3 | Artist, timestamps, disabled-looking metadata |
+| Dominant (60%) | #000000 | Central panel, page background |
+| Secondary (30%) | #1C1C1E | Sidebar, player bar, queue panel, cards, hovered rows (#2C2C2E) |
+| Text primary | #FFFFFF | Titles, body |
+| Text secondary | #98989D | Artist, timestamps, disabled-looking metadata |
 | Accent (10%) | #FA243C | See list below |
-| Destructive | #E5484D | Destructive actions and error toasts only |
-| Warning | #E0A030 | Offline/rate-limit banners, Unavailable badge text |
+| Destructive | #FF453A | Destructive actions and error toasts only |
+| Warning | #FF9F0A | Offline/rate-limit banners, Unavailable badge text |
 
 Accent reserved for: the play/pause button fill in the player bar, the Play button on hero sections, the seek bar and volume bar filled portion, the currently playing row's title and its playing glyph, the active sidebar item indicator bar, active shuffle/repeat/queue toggle state, keyboard focus ring. Not for links, hover states, Shuffle buttons (outlined, text primary), badges or the DEMO chip.
 
-Unavailable row: contents at 40% opacity, badge uses Warning text on #26262B.
+Unavailable row: contents at 40% opacity, badge uses Warning text on #2C2C2E.
 
 DEMO chip: outlined, Warning color text and border, Label 12 at weight 600, 4 vertical / 8 horizontal padding, corner radius 8.
 
-Contrast: Text primary on Dominant and Secondary meets 4.5:1; Text secondary on Secondary is at least 4.5:1 (verify with theme; lighten to #A8A8B2 if not).
+Contrast: Text primary on Dominant and Secondary meets 4.5:1; Text secondary on Secondary is at least 4.5:1 (verify with theme; lighten to #AEAEB2 if not).
 
 ---
 
