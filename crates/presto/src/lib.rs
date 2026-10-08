@@ -3,6 +3,7 @@
 pub mod app;
 pub mod backend;
 pub mod cli;
+pub mod ctl;
 pub mod launch;
 pub mod model;
 pub mod i18n;
