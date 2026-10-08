@@ -1,0 +1,7 @@
+presto-engine switch autoplay-policy no-user-gesture-required
+presto-engine switch disable-renderer-backgrounding 
+presto-engine switch disable-background-timer-throttling 
+presto-engine switch disable-features MediaSessionService,HardwareMediaKeyHandling
+[823348:1007/210439.471708:ERROR:ui/ozone/platform/wayland/gpu/wayland_surface_factory.cc:249] '--ozone-platform=wayland' is not compatible with Vulkan. Consider switching to '--ozone-platform=x11' or disabling Vulkan
+presto-engine cdm {"oimompecagnajdejgnnjijobebaeigek":{"status":"updated","title":"Widevine Content Decryption Module","version":"4.10.3112.0"}}
+presto-engine socket error write EPIPE

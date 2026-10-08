@@ -1,0 +1,7 @@
+presto-engine switch autoplay-policy no-user-gesture-required
+presto-engine switch disable-renderer-backgrounding 
+presto-engine switch disable-background-timer-throttling 
+presto-engine switch disable-features MediaSessionService,HardwareMediaKeyHandling
+presto-engine cdm {"oimompecagnajdejgnnjijobebaeigek":{"status":"new","title":"Widevine Content Decryption Module","version":"4.10.3112.0"}}
+presto-engine socket end 
+presto-engine socket close 

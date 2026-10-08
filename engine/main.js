@@ -6,6 +6,8 @@ const path = require('path');
 const readline = require('readline');
 const { app, BrowserWindow, ipcMain, session, components } = require('electron');
 
+const { allowed, safe, PERMISSIONS } = require('./guard');
+
 const log = (...a) => console.error('presto-engine', ...a);
 
 // --- args ---
@@ -83,13 +85,14 @@ readline.createInterface({ input: sock }).on('line', (line) => {
 });
 
 // --- window ---
+const trusted = (e) => win && e.sender === win.webContents && allowed(e.senderFrame?.url ?? '');
 ipcMain.on('presto:ready', (e, diag) => {
-  if (!win || e.sender !== win.webContents) return;
+  if (!trusted(e)) return;
   bridgeReady = true;
   log('presto-diag ready ' + JSON.stringify(diag));
 });
 ipcMain.on('presto:out', (e, frame) => {
-  if (!win || e.sender !== win.webContents) return;
+  if (!trusted(e)) return;
   if (frame.t === 'evt' && frame.evt?.type === 'auth') {
     log('auth', frame.evt.state);
     if (frame.evt.state === 'signed_out') win.show(); // sign-in needs a visible window
@@ -127,7 +130,14 @@ function attachDiag(wc) {
 app.whenReady().then(async () => {
   await components.whenReady();
   log('cdm', JSON.stringify(components.status()));
-  session.fromPartition('persist:presto').setUserAgent(UA);
+  const ses = session.fromPartition('persist:presto');
+  ses.setUserAgent(UA);
+  ses.setPermissionRequestHandler((_wc, perm, cb) => {
+    const ok = PERMISSIONS.has(perm);
+    if (!ok) log('denied permission', perm);
+    cb(ok);
+  });
+  ses.setPermissionCheckHandler((_wc, perm) => PERMISSIONS.has(perm));
 
   win = new BrowserWindow({
     show: args.show,
@@ -145,6 +155,13 @@ app.whenReady().then(async () => {
     },
   });
   const wc = win.webContents;
+  wc.on('will-navigate', (e, url) => { if (!allowed(url)) { e.preventDefault(); log('denied navigation', safe(url)); } });
+  wc.on('will-redirect', (e, url) => { if (!allowed(url)) { e.preventDefault(); log('denied redirect', safe(url)); } });
+  wc.setWindowOpenHandler(({ url }) => {
+    if (allowed(url)) setImmediate(() => wc.loadURL(url)); // popups load in the single window
+    else log('denied window', safe(url));
+    return { action: 'deny' };
+  });
 
   // D-08: read from disk every time so edits apply on the next restart.
   const inject = () => wc.executeJavaScript(fs.readFileSync(path.join(__dirname, 'bridge.js'), 'utf8'))
