@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/"
+    "test": "node --test"
   },
   "devDependencies": {
     "electron": "github:castlabs/electron-releases#v44.5.1+wvcus"
