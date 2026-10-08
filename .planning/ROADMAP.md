@@ -47,7 +47,7 @@ Plans:
 
 Plans:
 - [ ] 02-01-PLAN.md: Terms gate (D-10), install castlabs ECS at the newest wvcus tag (wave 1)
-- [ ] 02-02-PLAN.md: presto-spike Rust driver (checklist, signin, measure) proven against the mock (wave 1)
+- [x] 02-02-PLAN.md: presto-spike Rust driver (checklist, signin, measure) proven against the mock (wave 1)
 - [ ] 02-03-PLAN.md: Engine main.js, preload.js, bridge.js with stub-MusicKit tests (wave 2)
 - [ ] 02-04-PLAN.md: Live run: smoke, hand sign-in, hidden restart checklist on Wayland (wave 3)
 - [ ] 02-05-PLAN.md: Measurements: hidden-window and MPRIS matrix, RSS, codec, queue surface, listening check (wave 4)
