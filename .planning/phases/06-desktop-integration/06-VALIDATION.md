@@ -32,7 +32,16 @@ created: 2026-10-08
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| TBD (filled by planner) | | | DESK-01, DESK-02 | unit/integration | see RESEARCH | ❌ W0 | ⬜ pending |
+| 06-01-T1 | 01 | 1 | DESK-02 | schema/unit | `cargo test -p presto-ipc` | W0 creates | ⬜ pending |
+| 06-01-T2 | 01 | 1 | DESK-02 | unit | `cargo test -p presto --lib cli:: ctl::` | W0 creates | ⬜ pending |
+| 06-02-T1 | 02 | 2 | DESK-01, DESK-02 | unit | `cargo test -p presto --lib control::` | W0 creates | ⬜ pending |
+| 06-02-T2 | 02 | 2 | DESK-01, DESK-02 | unit | `cargo test -p presto --lib status::` | W0 creates | ⬜ pending |
+| 06-03-T1 | 03 | 3 | DESK-02 | integration | `cargo test -p presto --lib ctl:: && cargo test -p presto --test ctl_server` | W0 creates | ⬜ pending |
+| 06-03-T2 | 03 | 3 | DESK-02 | integration | `cargo test -p presto --test cli_e2e` | W0 creates | ⬜ pending |
+| 06-04-T1 | 04 | 4 | DESK-01 | unit | `cargo test -p presto --lib desktop::` | W0 creates | ⬜ pending |
+| 06-04-T2 | 04 | 4 | DESK-01 | integration (private bus) | `dbus-run-session -- cargo test -p presto --test desktop_mpris && cargo test -p presto-core --test engine_switches` | W0 creates | ⬜ pending |
+| 06-05-T1 | 05 | 5 | DESK-01, DESK-02 | suite | `cargo test --workspace && dbus-run-session -- cargo test -p presto --test desktop_mpris` | yes | ⬜ pending |
+| 06-05-T2 | 05 | 5 | DESK-01, DESK-02 | manual | 06-MANUAL-CHECKLIST.md | n/a | ⬜ pending |
 
 ## Wave 0 Requirements
 

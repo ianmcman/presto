@@ -138,7 +138,14 @@ Plans:
   1. KDE/GNOME/waybar show now-playing and media keys control playback.
   2. `busctl --user list | grep mpris` shows exactly one player.
   3. `presto` CLI commands control playback and `status --json` prints current state.
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 06-01-PLAN.md: ctl wire types in presto-ipc, clap subcommands, seek/volume parsers (wave 1)
+- [ ] 06-02-PLAN.md: pure op planner and status/MPRIS state mapping, fastframe-now-playing dep (wave 2)
+- [ ] 06-03-PLAN.md: control socket server, CLI client, flock single instance, main routing (wave 3)
+- [ ] 06-04-PLAN.md: MPRIS pump task, startup wiring, private-bus test, MediaSession guard (wave 4)
+- [ ] 06-05-PLAN.md: validation map, full suite, manual Wayland checklist (wave 5, checkpoint)
 
 ### Phase 7: Packaging and Distribution Notes
 **Goal**: Presto installs on Arch with no CDM bundled, and distribution blockers are written down. (Outline.)
