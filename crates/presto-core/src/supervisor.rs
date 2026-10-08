@@ -1,6 +1,8 @@
 //! The supervisor actor: owns the engine child, its socket and the pending-request map.
+use crate::auth::{AuthEffect, AuthMachine};
 use crate::backoff::Backoff;
 use crate::config::{CoreConfig, check_bridge};
+use crate::mirror::{Snapshot, queue_key, snapshot};
 use crate::paths::{Pidfile, new_log_file, sweep_stale, tail};
 use crate::state::{BridgeInfo, CoreState, EngineStatus};
 use nix::errno::Errno;
@@ -8,10 +10,10 @@ use nix::sys::signal::{Signal, killpg};
 use nix::unistd::Pid;
 use presto_ipc::transport::{self, Conn, TransportError};
 use presto_ipc::{
-    ApiRequest, Command, ErrorKind, Event, FaultSpec, Frame, Hello, IpcError, Kind, Outcome, PROTO,
+    ApiRequest, PlayState, AuthState, Command, ErrorKind, Event, FaultSpec, Frame, Hello, IpcError, Kind, Outcome, PROTO,
     Role, caps,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::io;
 use std::process::Stdio;
 use std::time::Duration;
@@ -47,6 +49,34 @@ pub(crate) enum Msg {
     Shutdown(oneshot::Sender<()>),
 }
 
+fn auth_err() -> Outcome {
+    Outcome::Err { error: IpcError::new(ErrorKind::AuthExpired, "signed out") }
+}
+
+/// Queue and player to put back after a restart or re-auth (D-01, D-04, D-11).
+struct Restore {
+    snap: Snapshot,
+    /// The page lost its queue, so load it again.
+    full: bool,
+    resume_allowed: bool,
+}
+
+/// One engine connection's bookkeeping.
+struct Sess {
+    conn: Conn,
+    pending: HashMap<u64, (Tx, Instant)>,
+    queued: Vec<(Job, Tx)>,
+    next_id: u64,
+}
+
+impl Sess {
+    async fn send(&mut self, job: Job, tx: Tx) -> Result<u64, TransportError> {
+        let id = self.next_id;
+        dispatch(&mut self.conn, &mut self.pending, &mut self.next_id, job, tx).await?;
+        Ok(id)
+    }
+}
+
 fn unavail(msg: impl Into<String>) -> Outcome {
     Outcome::Err { error: IpcError::new(ErrorKind::Unavailable, msg) }
 }
@@ -62,7 +92,26 @@ impl Core {
         let (state_tx, state_rx) = watch::channel(CoreState::default());
         let t = &cfg.timings;
         let backoff = Backoff::new(t.backoff_base, t.backoff_cap, t.fast, t.stable);
-        tokio::spawn(Actor { cfg, rx, state_tx, backoff }.run());
+        tokio::spawn(
+            Actor {
+                cfg,
+                rx,
+                state_tx,
+                backoff,
+                restore: None,
+                same_queue_crashes: 0,
+                last_crash_key: None,
+                attempt_start: std::time::Instant::now(),
+                auth: AuthMachine::default(),
+                bridge_seen: false,
+                auth_seen: false,
+                announced: false,
+                drift: false,
+                steps: None,
+                inflight: None,
+            }
+            .run(),
+        );
         Ok(CoreHandle { tx, state: state_rx })
     }
 }
@@ -138,12 +187,6 @@ enum Wake {
     Shutdown(Option<oneshot::Sender<()>>),
 }
 
-#[derive(PartialEq, Clone, Copy)]
-enum Phase {
-    Starting,
-    Ready,
-    Drift,
-}
 
 enum Ev {
     Tick,
@@ -158,6 +201,20 @@ struct Actor {
     rx: mpsc::UnboundedReceiver<Msg>,
     state_tx: watch::Sender<CoreState>,
     backoff: Backoff,
+    // Survive restarts.
+    restore: Option<Restore>,
+    same_queue_crashes: u32,
+    last_crash_key: Option<u64>,
+    // Reset per engine process.
+    attempt_start: std::time::Instant,
+    auth: AuthMachine,
+    bridge_seen: bool,
+    auth_seen: bool,
+    announced: bool,
+    drift: bool,
+    steps: Option<VecDeque<Command>>,
+    /// (request id, is the SetQueue load) of the restore step in flight.
+    inflight: Option<(u64, bool)>,
 }
 
 impl Actor {
@@ -173,11 +230,186 @@ impl Actor {
         self.state_tx.borrow().log_path.clone().unwrap_or_default()
     }
 
-    /// Extension point for 03-05: every bridge_ready means the page reloaded.
-    fn on_bridge_ready(&mut self) {}
+    /// Every bridge_ready means the page reloaded: revisions restart and MusicKit's queue is gone.
+    fn on_bridge_ready(&mut self) {
+        self.set(|c| {
+            c.queue.new_generation();
+            c.player.new_generation();
+        });
+        self.auth_seen = false;
+        if let Some(r) = &mut self.restore {
+            r.full = true;
+        }
+    }
 
-    /// Extension point for 03-05: non-handshake events.
-    fn on_event(&mut self, _evt: &Event) {}
+    fn take_snapshot(&self) -> Option<Snapshot> {
+        let st = self.state_tx.borrow();
+        snapshot(&st.queue, &st.player)
+    }
+
+    /// Auth left SignedIn: remember what to put back once it returns.
+    fn auth_lost(&mut self) {
+        if self.restore.is_none()
+            && let Some(snap) = self.take_snapshot()
+        {
+            self.restore = Some(Restore { snap, full: false, resume_allowed: true });
+        }
+    }
+
+    fn publish_auth(&self) {
+        let a = self.auth.state;
+        self.set(|c| c.auth = a);
+    }
+
+    /// Mirrors and auth. Returns true when the sign-in window should open.
+    fn on_event(&mut self, evt: Event) -> bool {
+        match evt {
+            Event::QueueChanged { rev, items, index } => {
+                self.set(|c| {
+                    c.queue.apply(rev, items, index);
+                });
+            }
+            Event::Auth { state } => {
+                let was = self.auth.state;
+                self.auth_seen = true;
+                let effect = self.auth.on_event(state);
+                self.publish_auth();
+                if was == Some(AuthState::SignedIn) && state != AuthState::SignedIn {
+                    self.auth_lost();
+                }
+                return effect == AuthEffect::ShowWindow;
+            }
+            Event::Error { error } => eprintln!("presto-core: engine error: {error:?}"),
+            Event::BridgeReady { .. } => {}
+            other => self.set(|c| c.player.apply(&other)),
+        }
+        false
+    }
+
+    /// An auth_expired reply while signed in expires the session (D-13).
+    fn on_outcome(&mut self, o: &Outcome) {
+        if let Outcome::Err { error } = o
+            && error.kind == ErrorKind::AuthExpired
+        {
+            let was = self.auth.state;
+            self.auth.on_auth_expired_outcome();
+            if self.auth.state != was {
+                self.publish_auth();
+                self.auth_lost();
+            }
+        }
+    }
+
+    fn usable(&self) -> bool {
+        !self.drift && self.bridge_seen && self.auth_seen && self.restore.is_none()
+    }
+
+    /// A restore step answered (or timed out).
+    fn step_result(&mut self, load: bool, o: &Outcome) {
+        self.inflight = None;
+        match o {
+            Outcome::Ok { .. } => {
+                let ids_match = self.restore.as_ref().is_none_or(|r| self.state_tx.borrow().queue.ids() == r.snap.ids);
+                if load && !ids_match {
+                    eprintln!("presto-core: restore: queue did not load as expected");
+                    self.restore = None;
+                    self.steps = None;
+                }
+            }
+            Outcome::Err { error } => {
+                eprintln!("presto-core: restore step failed: {error:?}");
+                if error.kind == ErrorKind::AuthExpired {
+                    // try again from the top when sign-in returns
+                    self.steps = None;
+                    if let Some(r) = &mut self.restore {
+                        r.full = true;
+                    }
+                } else {
+                    self.restore = None;
+                    self.steps = None;
+                }
+            }
+        }
+    }
+
+    fn begin_restore(&mut self) {
+        let Some(r) = &self.restore else { return };
+        let st = self.state_tx.borrow();
+        let s = &r.snap;
+        let load = r.full || st.queue.ids() != s.ids;
+        let mut v = VecDeque::new();
+        if load {
+            v.push_back(Command::SetQueue { ids: s.ids.clone(), start: s.index, play: false });
+            if s.position_ms > 0 {
+                v.push_back(Command::Seek { ms: s.position_ms });
+            }
+            v.push_back(Command::SetShuffle { on: s.shuffle });
+            v.push_back(Command::SetRepeat { mode: s.repeat });
+            v.push_back(Command::SetVolume { volume: s.volume });
+        }
+        if s.was_playing && r.resume_allowed && (load || st.player.state != PlayState::Playing) {
+            v.push_back(Command::Play);
+        }
+        drop(st);
+        self.steps = Some(v);
+    }
+
+    /// Runs after every event: starts and advances the restore, announces Ready, flushes queued work.
+    async fn pump(&mut self, s: &mut Sess) -> Result<(), TransportError> {
+        if self.drift {
+            return Ok(());
+        }
+        if self.auth.blocked() {
+            for (_, tx) in s.queued.drain(..) {
+                let _ = tx.send(auth_err());
+            }
+        }
+        if self.restore.is_some() && self.steps.is_none() && self.bridge_seen && self.auth_seen && self.auth.allows_traffic() {
+            self.begin_restore();
+        }
+        while self.inflight.is_none() {
+            let Some(steps) = &mut self.steps else { break };
+            match steps.pop_front() {
+                Some(cmd) => {
+                    let load = matches!(cmd, Command::SetQueue { .. });
+                    // ponytail: no seek verify/retry; add if the live check shows seek-before-load is ignored (RESEARCH Pitfall 6).
+                    let (tx, _rx) = oneshot::channel();
+                    let id = s.send(Job::Cmd(cmd), tx).await?;
+                    self.inflight = Some((id, load));
+                }
+                None => {
+                    self.restore = None;
+                    self.steps = None;
+                }
+            }
+        }
+        if self.usable() {
+            if !self.announced {
+                self.announced = true;
+                self.status(EngineStatus::Ready);
+            }
+            for (job, tx) in std::mem::take(&mut s.queued) {
+                s.send(job, tx).await?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Before backing off: remember the queue, and count same-queue crashes (D-04).
+    fn note_failure(&mut self) {
+        if self.attempt_start.elapsed() >= self.cfg.timings.stable {
+            self.same_queue_crashes = 0;
+            self.last_crash_key = None;
+        }
+        // a restore still pending holds a better snapshot than a half-restored mirror
+        let snap = self.restore.take().map(|r| r.snap).or_else(|| self.take_snapshot());
+        let Some(snap) = snap else { return };
+        let k = queue_key(&snap.ids);
+        self.same_queue_crashes = if Some(k) == self.last_crash_key { self.same_queue_crashes + 1 } else { 1 };
+        self.last_crash_key = Some(k);
+        let resume_allowed = self.same_queue_crashes < 2;
+        self.restore = Some(Restore { snap, full: true, resume_allowed });
+    }
 
     async fn run(mut self) {
         let mut n = 0u32;
@@ -186,10 +418,18 @@ impl Actor {
             n += 1;
             let wake = match end {
                 End::Shutdown(tx) => return finish(tx),
-                End::Restart => Wake::Restart,
+                End::Restart => {
+                    if self.restore.is_none()
+                        && let Some(snap) = self.take_snapshot()
+                    {
+                        self.restore = Some(Restore { snap, full: true, resume_allowed: true });
+                    }
+                    Wake::Restart
+                }
                 End::Failure(reason) => {
                     eprintln!("presto-core: engine failed: {reason}");
                     self.set(|c| c.restarts += 1);
+                    self.note_failure();
                     let log_path = self.log_path();
                     match self.backoff.on_failure(std::time::Instant::now()) {
                         Some(d) => {
@@ -237,7 +477,14 @@ impl Actor {
     /// One engine lifetime: spawn, handshake, session, teardown.
     async fn attempt(&mut self, n: u32) -> End {
         self.status(EngineStatus::Starting);
-        self.set(|c| c.bridge = None);
+        self.set(|c| {
+            c.bridge = None;
+            c.auth = None;
+        });
+        self.attempt_start = std::time::Instant::now();
+        self.auth = AuthMachine::default();
+        (self.bridge_seen, self.auth_seen, self.announced, self.drift) = (false, false, false, false);
+        (self.steps, self.inflight) = (None, None);
         let socket = self.cfg.socket.clone();
         let listener = match transport::bind(&socket) {
             Ok(l) => l,
@@ -287,7 +534,7 @@ impl Actor {
             r = handshake(&listener, &t.connect) => r,
             s = child.wait() => Err(format!("engine exited before connecting: {s:?}")),
         };
-        let (mut conn, hello) = match hs {
+        let (conn, hello) = match hs {
             Ok(x) => x,
             Err(reason) => {
                 self.teardown(None, &mut child, pgid, None).await;
@@ -296,11 +543,8 @@ impl Actor {
             }
         };
 
-        let mut pending: HashMap<u64, (Tx, Instant)> = HashMap::new();
-        let mut queued: Vec<(Job, Tx)> = Vec::new();
-        let mut next_id = 1u64;
+        let mut s = Sess { conn, pending: HashMap::new(), queued: Vec::new(), next_id: 1 };
         let (mut ping_seq, mut unanswered) = (0u64, 0u32);
-        let mut phase = Phase::Starting;
         let mut drift_armed = true;
         let drift_at = Instant::now() + t.drift;
         let mut tick = interval(t.heartbeat);
@@ -309,8 +553,8 @@ impl Actor {
         let (end, graceful) = 'session: loop {
             let ev = tokio::select! {
                 _ = tick.tick() => Ev::Tick,
-                r = transport::recv(&mut conn) => Ev::Frame(r),
-                s = child.wait() => Ev::Exit(s),
+                r = transport::recv(&mut s.conn) => Ev::Frame(r),
+                c = child.wait() => Ev::Exit(c),
                 m = self.rx.recv() => Ev::Msg(m),
                 _ = sleep_until(drift_at), if drift_armed => Ev::Drift,
             };
@@ -321,15 +565,19 @@ impl Actor {
                         break (End::Failure(format!("engine hung: {unanswered} pings unanswered")), false);
                     }
                     ping_seq += 1;
-                    if let Err(e) = transport::send(&mut conn, &Frame::Ping { seq: ping_seq }).await {
+                    if let Err(e) = transport::send(&mut s.conn, &Frame::Ping { seq: ping_seq }).await {
                         break (closed(&e), false);
                     }
                     unanswered += 1;
                     let now = Instant::now();
-                    let late: Vec<u64> = pending.iter().filter(|(_, (_, dl))| *dl <= now).map(|(id, _)| *id).collect();
+                    let late: Vec<u64> = s.pending.iter().filter(|(_, (_, dl))| *dl <= now).map(|(id, _)| *id).collect();
                     for id in late {
-                        if let Some((tx, _)) = pending.remove(&id) {
-                            let _ = tx.send(Outcome::Err { error: IpcError::new(ErrorKind::Timeout, "engine did not answer in time") });
+                        if let Some((tx, _)) = s.pending.remove(&id) {
+                            let o = Outcome::Err { error: IpcError::new(ErrorKind::Timeout, "engine did not answer in time") };
+                            if let Some((_, load)) = self.inflight.filter(|(i, _)| *i == id) {
+                                self.step_result(load, &o);
+                            }
+                            let _ = tx.send(o);
                         }
                     }
                 }
@@ -342,7 +590,11 @@ impl Actor {
                         }
                     }
                     Frame::Res { id, outcome } => {
-                        if let Some((tx, _)) = pending.remove(&id) {
+                        if let Some((_, load)) = self.inflight.filter(|(i, _)| *i == id) {
+                            self.step_result(load, &outcome);
+                        }
+                        self.on_outcome(&outcome);
+                        if let Some((tx, _)) = s.pending.remove(&id) {
                             let _ = tx.send(outcome);
                         }
                     }
@@ -352,33 +604,34 @@ impl Actor {
                         match check_bridge(&capabilities, musickit_build.as_deref()) {
                             Ok(()) => {
                                 self.set(|c| c.bridge = Some(BridgeInfo { version, capabilities, musickit_build }));
-                                phase = Phase::Ready;
-                                self.status(EngineStatus::Ready);
-                                for (job, tx) in std::mem::take(&mut queued) {
-                                    if let Err(e) = dispatch(&mut conn, &mut pending, &mut next_id, job, tx).await {
-                                        break 'session (closed(&e), false);
-                                    }
-                                }
+                                self.bridge_seen = true;
                             }
                             Err(reason) => {
                                 eprintln!("presto-core: drift: {reason}");
-                                phase = Phase::Drift;
-                                fail_queued(&mut queued, "engine drift");
+                                self.drift = true;
+                                fail_queued(&mut s.queued, "engine drift");
                                 self.set(|c| c.bridge = None);
                                 self.status(EngineStatus::Drift { reason, log_path: log_path.clone() });
                             }
                         }
                     }
-                    Frame::Evt { evt } => self.on_event(&evt),
+                    Frame::Evt { evt } => {
+                        if self.on_event(evt) && hello.has(caps::WINDOW) {
+                            let (tx, _rx) = oneshot::channel();
+                            if let Err(e) = s.send(Job::Cmd(Command::ShowWindow { show: true }), tx).await {
+                                break (closed(&e), false);
+                            }
+                        }
+                    }
                     _ => {}
                 },
-                Ev::Exit(s) => break (End::Failure(format!("engine exited: {s:?}")), false),
+                Ev::Exit(c) => break (End::Failure(format!("engine exited: {c:?}")), false),
                 Ev::Drift => {
                     drift_armed = false;
                     let reason = format!("no bridge_ready within {:?}", t.drift);
                     eprintln!("presto-core: drift: {reason}");
-                    phase = Phase::Drift;
-                    fail_queued(&mut queued, "engine drift");
+                    self.drift = true;
+                    fail_queued(&mut s.queued, "engine drift");
                     self.status(EngineStatus::Drift { reason, log_path: log_path.clone() });
                 }
                 Ev::Msg(None) => break (End::Shutdown(None), true),
@@ -388,30 +641,32 @@ impl Actor {
                     if job.immediate() {
                         if matches!(job, Job::Cmd(_)) && !hello.has(caps::WINDOW) {
                             let _ = tx.send(unavail("engine cannot show its window"));
-                        } else if let Err(e) = dispatch(&mut conn, &mut pending, &mut next_id, job, tx).await {
+                        } else if let Err(e) = s.send(job, tx).await {
+                            break (closed(&e), false);
+                        }
+                    } else if self.drift {
+                        let _ = tx.send(unavail("engine drift"));
+                    } else if self.auth.blocked() {
+                        let _ = tx.send(auth_err());
+                    } else if self.usable() {
+                        if let Err(e) = s.send(job, tx).await {
                             break (closed(&e), false);
                         }
                     } else {
-                        match phase {
-                            Phase::Ready => {
-                                if let Err(e) = dispatch(&mut conn, &mut pending, &mut next_id, job, tx).await {
-                                    break (closed(&e), false);
-                                }
-                            }
-                            Phase::Starting => queued.push((job, tx)),
-                            Phase::Drift => {
-                                let _ = tx.send(unavail("engine drift"));
-                            }
-                        }
+                        s.queued.push((job, tx));
                     }
                 }
             }
+            if let Err(e) = self.pump(&mut s).await {
+                break 'session (closed(&e), false);
+            }
         };
 
-        for (tx, _) in pending.into_values() {
+        for (tx, _) in s.pending.into_values() {
             let _ = tx.send(unavail("engine restarted"));
         }
-        fail_queued(&mut queued, "engine restarted");
+        fail_queued(&mut s.queued, "engine restarted");
+        let conn = s.conn;
         self.teardown(Some(conn), &mut child, pgid, graceful.then_some(t.quit_wait)).await;
         guard.0 = None;
         end
