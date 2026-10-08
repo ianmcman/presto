@@ -189,7 +189,7 @@ impl Backend {
         self.data.clear_cache();
     }
 
-    pub fn shutdown(self) {
-        self.rt.block_on(self.core.shutdown());
+    pub fn shutdown(&self) {
+        self.rt.block_on(self.core.clone().shutdown());
     }
 }

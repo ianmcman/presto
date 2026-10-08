@@ -1,5 +1,6 @@
 //! Presto native UI.
 
+pub mod app;
 pub mod backend;
 pub mod cli;
 pub mod launch;
