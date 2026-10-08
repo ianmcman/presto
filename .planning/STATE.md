@@ -60,6 +60,12 @@ None yet.
 - Read current Apple Media Services terms before the spike.
 - ECS tag v44.1.0 unconfirmed.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 261008-bsb | Harden artwork fetch: https *.mzstatic.com only, no redirects, 10 MB cap | 2026-10-08 | e882b55 | [261008-bsb-harden-artwork-fetch-https-mzstatic-host](./quick/261008-bsb-harden-artwork-fetch-https-mzstatic-host/) |
+
 ## Session Continuity
 
 Last session: 2026-10-08T13:33:08.641Z
