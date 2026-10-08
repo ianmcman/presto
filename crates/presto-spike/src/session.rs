@@ -66,16 +66,14 @@ impl Session {
             .await
             .map_err(|_| "engine did not connect within 30s")??;
         let mut conn = transport::framed(stream);
-        let engine_hello = match tokio::time::timeout(
-            Kind::Hello.timeout(),
-            transport::recv(&mut conn),
-        )
-        .await
-        .map_err(|_| "engine hello timed out")??
-        {
-            Some(Frame::Hello(h)) => h,
-            other => return Err(format!("expected engine hello, got {other:?}").into()),
-        };
+        let engine_hello =
+            match tokio::time::timeout(Kind::Hello.timeout(), transport::recv(&mut conn))
+                .await
+                .map_err(|_| "engine hello timed out")??
+            {
+                Some(Frame::Hello(h)) => h,
+                other => return Err(format!("expected engine hello, got {other:?}").into()),
+            };
         engine_hello.check(PROTO)?;
         let ours = Hello::new(
             Role::Presto,
@@ -209,7 +207,9 @@ impl Session {
     /// Closes the connection (engine quits on EOF so Chromium flushes cookies),
     /// then waits 10 s before killing.
     pub async fn shutdown(self) -> R<std::process::ExitStatus> {
-        let Session { conn, mut child, .. } = self;
+        let Session {
+            conn, mut child, ..
+        } = self;
         drop(conn);
         match tokio::time::timeout(Duration::from_secs(10), child.wait()).await {
             Ok(r) => Ok(r?),

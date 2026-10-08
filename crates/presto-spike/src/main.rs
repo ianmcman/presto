@@ -23,7 +23,10 @@ pub struct Cli {
     /// Default: $XDG_STATE_HOME/presto/engine-profile, else $HOME/.local/state/presto/engine-profile
     #[arg(long)]
     profile: Option<PathBuf>,
-    #[arg(long, default_value = ".planning/phases/02-engine-feasibility-spike-gate/logs")]
+    #[arg(
+        long,
+        default_value = ".planning/phases/02-engine-feasibility-spike-gate/logs"
+    )]
     log_dir: PathBuf,
     #[arg(long, default_value = "run")]
     label: String,
@@ -81,7 +84,10 @@ pub struct Ctx {
 }
 
 fn private_dir(p: &std::path::Path) -> R<()> {
-    std::fs::DirBuilder::new().recursive(true).mode(0o700).create(p)?;
+    std::fs::DirBuilder::new()
+        .recursive(true)
+        .mode(0o700)
+        .create(p)?;
     std::fs::set_permissions(p, std::fs::Permissions::from_mode(0o700))?;
     Ok(())
 }
@@ -128,17 +134,7 @@ async fn run(cli: Cli) -> R<i32> {
             min_play_secs,
             seek_secs,
             auth_wait_secs,
-        } => {
-            checks::run_checks(
-                &cx,
-                &name,
-                &song,
-                min_play_secs,
-                seek_secs,
-                auth_wait_secs,
-            )
-            .await
-        }
+        } => checks::run_checks(&cx, &name, &song, min_play_secs, seek_secs, auth_wait_secs).await,
         Cmd::Signin { wait_secs } => checks::signin(&mut cx, wait_secs).await,
         Cmd::Measure {
             song,
