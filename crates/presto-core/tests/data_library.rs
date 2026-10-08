@@ -126,11 +126,11 @@ async fn recent_always_revalidates() {
     let dir = tempfile::tempdir().unwrap();
     let d = ready(&r, &Paths::under(dir.path().join("data"))).await;
     let mut rx = d.list(ViewKey::RecentlyPlayed);
-    let s0 = until(&mut rx, |s| s.items.len() == 4 && s.phase == Phase::Idle).await;
+    let s0 = until(&mut rx, |s| s.items.len() == 8 && s.phase == Phase::Idle).await;
     tokio::time::sleep(Duration::from_millis(20)).await;
     let mut rx = d.list(ViewKey::RecentlyPlayed);
     let s1 = until(&mut rx, |s| s.fetched_at > s0.fetched_at && s.phase == Phase::Idle).await;
-    assert_eq!(s1.items.len(), 4);
+    assert_eq!(s1.items.len(), 8);
     r.core.shutdown().await;
 }
 
@@ -142,7 +142,8 @@ async fn home_shelves() {
     let mut rx = d.shelves();
     let s = until(&mut rx, |s| !s.items.is_empty() && s.phase == Phase::Idle).await;
     let titles: Vec<_> = s.items.iter().map(|x| x.title.as_str()).collect();
-    assert_eq!(titles, ["Made for You", "Albums You Might Like"]);
-    assert!(s.items.iter().all(|x| x.items.len() == 2));
+    assert_eq!(titles, ["Made for You", "Albums You Might Like", "New Releases"]);
+    let lens: Vec<_> = s.items.iter().map(|x| x.items.len()).collect();
+    assert_eq!(lens, [2, 2, 4]);
     r.core.shutdown().await;
 }

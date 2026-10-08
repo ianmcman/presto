@@ -152,6 +152,8 @@ CLI: `--fault`, repeatable, syntax `none|hang|crash|crash@<ms>|auth_expired|slow
 - `rate_limited`: every `req` gets `err` `rate_limited` with the given `retry_after_ms` (null if omitted) until `none`; `cmd` is unaffected.
 - `signed_out`: emits `auth` `signed_out`; every `cmd` and `req` then gets `err` `auth_expired` (except `show_window`) until `none`, which emits `auth` `signed_in`.
 
+Mock catalog: `s7` is unavailable (no playParams, queued `playable=false`), `s8` fails with upstream 503 on play, generated library id `i.00007` is unavailable. Album and playlist `/tracks` routes (limit max 100) and artist `views` exist.
+
 `mock` frames are acked with `res` immediately and are never delayed. Mock-only frames do not change the protocol version.
 
 ## Security

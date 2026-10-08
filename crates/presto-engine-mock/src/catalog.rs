@@ -29,22 +29,123 @@ const SONGS: &[(&str, &str, &str, &str, u64)] = &[
         "Fault Lines",
         222000,
     ),
+    (
+        "s7",
+        "Region Locked",
+        "The Placeholders",
+        "Fault Lines Deluxe",
+        210000,
+    ),
+    (
+        "s8",
+        "Dropped Signal",
+        "Mock Artist One",
+        "Night Shift",
+        195000,
+    ),
+    (
+        "s9",
+        "Afterglow Protocol",
+        "Mock Artist One",
+        "Night Shift",
+        230000,
+    ),
+    ("s10", "Idle Loop", "Mock Artist One", "Night Shift", 188000),
+    (
+        "s11",
+        "Graceful Shutdown",
+        "The Placeholders",
+        "Fault Lines Deluxe",
+        251000,
+    ),
+    (
+        "s12",
+        "Quiet Hours",
+        "Mock Artist One",
+        "Quiet Hours",
+        176000,
+    ),
+    (
+        "s13",
+        "An Extremely Long Song Title That Keeps Going Well Past The Width Of Any Reasonable Row So Truncation Shows",
+        "Third Mock",
+        "Long Form",
+        412000,
+    ),
+    ("s14", "Short Form", "Third Mock", "Long Form", 95000),
 ];
-// (id, name, artist)
-const ARTISTS: &[(&str, &str)] = &[("a1", "Mock Artist One"), ("a2", "The Placeholders")];
-// (id, name, artist, song ids)
-const ALBUMS: &[(&str, &str, &str, &[&str])] = &[
-    ("al1", "Neon Static", "Mock Artist One", &["s1", "s2", "s3"]),
+// (id, name)
+const ARTISTS: &[(&str, &str)] = &[
+    ("a1", "Mock Artist One"),
+    ("a2", "The Placeholders"),
+    ("a3", "Third Mock"),
+];
+// (id, name, artist, song ids, release date, is_single)
+type Album = (
+    &'static str,
+    &'static str,
+    &'static str,
+    &'static [&'static str],
+    &'static str,
+    bool,
+);
+const ALBUMS: &[Album] = &[
+    (
+        "al1",
+        "Neon Static",
+        "Mock Artist One",
+        &["s1", "s2", "s3"],
+        "2019-03-01",
+        false,
+    ),
     (
         "al2",
         "Fault Lines",
         "The Placeholders",
         &["s4", "s5", "s6"],
+        "2021-06-18",
+        false,
+    ),
+    (
+        "al3",
+        "Night Shift",
+        "Mock Artist One",
+        &["s8", "s9", "s10"],
+        "2023-10-06",
+        false,
+    ),
+    (
+        "al4",
+        "Fault Lines Deluxe",
+        "The Placeholders",
+        &["s7", "s11", "s4"],
+        "2022-02-11",
+        false,
+    ),
+    (
+        "al5",
+        "Quiet Hours",
+        "Mock Artist One",
+        &["s12"],
+        "2024-05-03",
+        true,
+    ),
+    (
+        "al6",
+        "Long Form",
+        "Third Mock",
+        &["s13", "s14"],
+        "2020-09-25",
+        false,
     ),
 ];
+/// p4 ignores its id list: its tracks are `gen_song(0..LONG_LIST)`.
+const LONG_LIST: usize = 150;
 const PLAYLISTS: &[(&str, &str, &[&str])] = &[
     ("p1", "Mock Mix", &["s1", "s4", "s2"]),
     ("p2", "Late Night", &["s5", "s6"]),
+    ("p3", "Unavailable Mix", &["s7", "s8", "s1", "s2"]),
+    ("p4", "Long Playlist", &[]),
 ];
 
 fn art(id: &str, size: &str) -> String {
@@ -56,26 +157,58 @@ fn artwork(id: &str) -> Value {
 }
 
 pub fn song(id: &str) -> Option<QueueItem> {
-    SONGS.iter().find(|s| s.0 == id).map(|s| QueueItem {
-        id: s.0.into(),
-        title: s.1.into(),
-        artist: s.2.into(),
-        album: s.3.into(),
-        duration_ms: s.4,
-        artwork_url: Some(art(s.0, "600x600")),
-        playable: true,
+    if let Some(s) = SONGS.iter().find(|s| s.0 == id) {
+        return Some(QueueItem {
+            id: s.0.into(),
+            title: s.1.into(),
+            artist: s.2.into(),
+            album: s.3.into(),
+            duration_ms: s.4,
+            artwork_url: Some(art(s.0, "600x600")),
+            playable: id != "s7",
+        });
+    }
+    let digits = id.strip_prefix("i.").filter(|d| d.len() == 5)?;
+    let n: usize = digits.parse().ok()?;
+    Some(QueueItem {
+        id: id.into(),
+        title: format!("Song {n:05}"),
+        artist: format!("Gen Artist {}", n % 50),
+        album: format!("Gen Album {}", n % 500),
+        duration_ms: 200000,
+        artwork_url: Some(art(id, "600x600")),
+        playable: n != 7,
     })
 }
 
 fn song_res(id: &str) -> Value {
     let s = SONGS.iter().find(|s| s.0 == id).expect("known song");
-    json!({"id": s.0, "type": "songs", "attributes": {
+    let mut r = json!({"id": s.0, "type": "songs", "attributes": {
         "name": s.1, "artistName": s.2, "albumName": s.3,
-        "durationInMillis": s.4, "artwork": artwork(s.0)}})
+        "durationInMillis": s.4, "artwork": artwork(s.0)}});
+    if id != "s7" {
+        r["attributes"]["playParams"] = json!({"id": id, "kind": "song"});
+    }
+    r
 }
 
 fn tracks(ids: &[&str]) -> Vec<Value> {
     ids.iter().map(|i| song_res(i)).collect()
+}
+
+fn playlist_tracks(p: &(&str, &str, &[&str])) -> Vec<Value> {
+    if p.0 == "p4" {
+        (0..LONG_LIST).map(gen_song).collect()
+    } else {
+        tracks(p.2)
+    }
+}
+
+fn album_res(a: &Album) -> Value {
+    json!({"id": a.0, "type": "albums", "attributes": {
+        "name": a.1, "artistName": a.2, "artwork": artwork(a.0),
+        "trackCount": a.3.len(), "releaseDate": a.4, "isSingle": a.5},
+        "relationships": {"tracks": {"data": tracks(a.3)}}})
 }
 
 /// All resources of a type as (name, json).
@@ -92,27 +225,17 @@ fn all(ty: &str) -> Vec<(&'static str, Value)> {
                 )
             })
             .collect(),
-        "albums" => ALBUMS
-            .iter()
-            .map(|a| {
-                (
-                    a.1,
-                    json!({"id": a.0, "type": "albums", "attributes": {
-                    "name": a.1, "artistName": a.2, "artwork": artwork(a.0),
-                    "trackCount": a.3.len()},
-                    "relationships": {"tracks": {"data": tracks(a.3)}}}),
-                )
-            })
-            .collect(),
+        "albums" => ALBUMS.iter().map(|a| (a.1, album_res(a))).collect(),
         "playlists" => PLAYLISTS
             .iter()
             .map(|p| {
+                let all = playlist_tracks(p);
                 (
                     p.1,
                     json!({"id": p.0, "type": "playlists", "attributes": {
                     "name": p.1, "curatorName": "Presto Mock", "artwork": artwork(p.0),
-                    "trackCount": p.2.len()},
-                    "relationships": {"tracks": {"data": tracks(p.2)}}}),
+                    "trackCount": all.len()},
+                    "relationships": {"tracks": {"data": all.into_iter().take(100).collect::<Vec<_>>()}}}),
                 )
             })
             .collect(),
@@ -152,13 +275,20 @@ fn bad_request(msg: &str) -> Outcome {
 
 fn gen_song(n: usize) -> Value {
     let id = format!("i.{n:05}");
-    json!({"id": id, "type": "library-songs", "attributes": {
+    let mut r = json!({"id": id, "type": "library-songs", "attributes": {
         "name": format!("Song {n:05}"),
         "artistName": format!("Gen Artist {}", n % 50),
         "albumName": format!("Gen Album {}", n % 500),
         "durationInMillis": 200000,
         "artwork": artwork(&id),
-        "playParams": {"id": id, "kind": "song", "isLibrary": true}}})
+        "playParams": {"id": id, "kind": "song", "isLibrary": true}}});
+    if n == 7 {
+        r["attributes"]
+            .as_object_mut()
+            .unwrap()
+            .remove("playParams");
+    }
+    r
 }
 
 /// One page over `total` items computed per index; `next` is a path with `offset` only.
@@ -187,6 +317,32 @@ fn group(id: &str, title: &str, ids: &[&str], ty: &str) -> Value {
     json!({"id": id, "type": "personal-recommendation",
         "attributes": {"title": {"stringForDisplay": title}, "kind": "music-recommendations"},
         "relationships": {"contents": {"data": contents}}})
+}
+
+fn artist_views(name: &str, wanted: &str) -> Value {
+    let albums = |single: bool| -> Vec<Value> {
+        ALBUMS
+            .iter()
+            .filter(|a| a.2 == name && a.5 == single)
+            .map(album_res)
+            .collect()
+    };
+    let mut v = serde_json::Map::new();
+    for w in wanted.split(',') {
+        let data = match w {
+            "top-songs" => SONGS
+                .iter()
+                .filter(|s| s.2 == name)
+                .take(10)
+                .map(|s| song_res(s.0))
+                .collect(),
+            "full-albums" => albums(false),
+            "singles" => albums(true),
+            _ => continue,
+        };
+        v.insert(w.into(), json!({"data": data}));
+    }
+    Value::Object(v)
 }
 
 pub fn handle(req: &ApiRequest, cat: &Catalog) -> Outcome {
@@ -283,6 +439,12 @@ pub fn handle(req: &ApiRequest, cat: &Catalog) -> Outcome {
             let groups = [
                 group("rec1", "Made for You", &["p1", "p2"], "playlists"),
                 group("rec2", "Albums You Might Like", &["al1", "al2"], "albums"),
+                group(
+                    "rec3",
+                    "New Releases",
+                    &["al3", "al4", "al5", "al6"],
+                    "albums",
+                ),
             ];
             Outcome::Ok {
                 data: page(
@@ -313,12 +475,40 @@ pub fn handle(req: &ApiRequest, cat: &Catalog) -> Outcome {
                 data: json!({"results": {"terms": terms}}),
             }
         }
-        ["v1", "me", "library", ty, id] | ["v1", "catalog", _, ty, id] if is_type(ty) => {
-            match all(ty).into_iter().find(|i| i.1["id"] == *id) {
-                Some((_, r)) => Outcome::Ok {
-                    data: json!({"data": [r]}),
-                },
+        ["v1", "me", "library", ty, id, "tracks"] | ["v1", "catalog", _, ty, id, "tracks"]
+            if matches!(*ty, "albums" | "playlists") =>
+        {
+            let (limit, offset) = (num("limit", 100), num("offset", 0));
+            if limit > 100 {
+                return bad_request("mock: tracks limit max is 100");
+            }
+            let list = match *ty {
+                "albums" => ALBUMS.iter().find(|a| a.0 == *id).map(|a| tracks(a.3)),
+                _ => PLAYLISTS.iter().find(|p| p.0 == *id).map(playlist_tracks),
+            };
+            match list {
+                Some(l) => {
+                    let mut o = page(l.len(), limit, offset, path, |i| l[i].clone());
+                    o["meta"] = json!({"total": l.len()});
+                    Outcome::Ok { data: o }
+                }
                 None => not_found(format!("mock engine has no {ty} {id}")),
+            }
+        }
+        ["v1", "me", "library", ty, id] | ["v1", "catalog", _, ty, id] if is_type(ty) => {
+            let Some((name, mut r)) = all(ty).into_iter().find(|i| i.1["id"] == *id) else {
+                return not_found(format!("mock engine has no {ty} {id}"));
+            };
+            if *ty == "artists" {
+                if let Some(views) = query.get("views") {
+                    r["views"] = artist_views(name, views);
+                }
+            }
+            if query.get("include").is_some_and(|i| i.contains("catalog")) {
+                r["relationships"]["catalog"] = json!({"data": [{"id": id, "type": ty}]});
+            }
+            Outcome::Ok {
+                data: json!({"data": [r]}),
             }
         }
         ["v1", "catalog", _, "search"] => {
@@ -358,7 +548,7 @@ mod tests {
         let d = data(handle(&r, &Catalog::default()));
         assert_eq!(d["data"].as_array().unwrap().len(), 2);
         assert_eq!(d["next"], "/v1/me/library/songs?offset=2");
-        let d = get("/v1/me/library/songs?offset=4&limit=5");
+        let d = get("/v1/me/library/songs?offset=12&limit=5");
         assert_eq!(d["data"].as_array().unwrap().len(), 2);
         assert!(d.get("next").is_none());
     }
@@ -438,7 +628,10 @@ mod tests {
     #[test]
     fn recent_played() {
         let d = get("/v1/me/recent/played?limit=10");
-        assert_eq!(ids(&d), ["al1", "p1", "al2", "p2"]);
+        assert_eq!(
+            ids(&d),
+            ["al1", "p1", "al2", "p2", "al3", "p3", "al4", "p4"]
+        );
         assert!(d.get("next").is_none());
         let d = get("/v1/me/recent/played?limit=2");
         assert_eq!(ids(&d), ["al1", "p1"]);
@@ -452,7 +645,7 @@ mod tests {
     #[test]
     fn recommendations() {
         let d = get("/v1/me/recommendations");
-        assert_eq!(ids(&d), ["rec1", "rec2"]);
+        assert_eq!(ids(&d), ["rec1", "rec2", "rec3"]);
         assert_eq!(
             d["data"][0]["attributes"]["title"]["stringForDisplay"],
             "Made for You"
@@ -529,6 +722,94 @@ mod tests {
             "/v1/me/library/songs?offset=100"
         );
         assert!(is_400(r("/v1/me/library/songs?limit=101")));
-        assert_eq!(get("/v1/me/library/albums")["meta"]["total"], 2);
+        assert_eq!(get("/v1/me/library/albums")["meta"]["total"], 6);
+    }
+
+    #[test]
+    fn catalog_song_play_params() {
+        let d = get("/v1/catalog/us/songs/s1");
+        assert_eq!(d["data"][0]["attributes"]["playParams"]["id"], "s1");
+        let d = get("/v1/catalog/us/songs/s7");
+        assert!(d["data"][0]["attributes"].get("playParams").is_none());
+    }
+
+    #[test]
+    fn song_resolves_generated() {
+        let s = song("i.00042").unwrap();
+        assert_eq!((s.title.as_str(), s.playable), ("Song 00042", true));
+        assert!(!song("i.00007").unwrap().playable);
+        assert!(!song("s7").unwrap().playable);
+        assert!(song("s8").unwrap().playable);
+        assert!(song("nope").is_none());
+    }
+
+    #[test]
+    fn album_detail() {
+        let d = get("/v1/catalog/us/albums/al3");
+        let a = &d["data"][0]["attributes"];
+        assert_eq!(
+            (a["releaseDate"].as_str(), a["trackCount"].as_u64()),
+            (Some("2023-10-06"), Some(3))
+        );
+        assert_eq!(
+            ids(&d["data"][0]["relationships"]["tracks"]),
+            ["s8", "s9", "s10"]
+        );
+        assert_eq!(
+            get("/v1/catalog/us/albums/al5")["data"][0]["attributes"]["isSingle"],
+            true
+        );
+    }
+
+    #[test]
+    fn tracks_paged() {
+        let d = get("/v1/catalog/us/playlists/p4/tracks?limit=100");
+        assert_eq!(d["data"].as_array().unwrap().len(), 100);
+        assert_eq!(d["next"], "/v1/catalog/us/playlists/p4/tracks?offset=100");
+        assert_eq!(d["meta"]["total"], 150);
+        let d = get("/v1/catalog/us/playlists/p4/tracks?offset=100&limit=100");
+        assert_eq!(d["data"].as_array().unwrap().len(), 50);
+        assert!(d.get("next").is_none());
+        assert_eq!(
+            ids(&get("/v1/me/library/albums/al1/tracks")),
+            ["s1", "s2", "s3"]
+        );
+        assert!(is_400(handle(
+            &ApiRequest::get("/v1/catalog/us/playlists/p4/tracks?limit=101"),
+            &Catalog::default()
+        )));
+    }
+
+    #[test]
+    fn artist_views() {
+        let d = get("/v1/catalog/us/artists/a1?views=top-songs,full-albums,singles");
+        let v = &d["data"][0]["views"];
+        let top = v["top-songs"]["data"].as_array().unwrap();
+        assert!(!top.is_empty());
+        assert!(
+            top.iter()
+                .all(|s| s["attributes"]["artistName"] == "Mock Artist One")
+        );
+        assert_eq!(ids(&v["full-albums"]), ["al1", "al3"]);
+        assert_eq!(ids(&v["singles"]), ["al5"]);
+        assert!(
+            get("/v1/catalog/us/artists/a1")["data"][0]
+                .get("views")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn library_artist_catalog() {
+        let d = get("/v1/me/library/artists/a1?include=catalog");
+        assert_eq!(
+            d["data"][0]["relationships"]["catalog"]["data"][0]["id"],
+            "a1"
+        );
+    }
+
+    #[test]
+    fn long_title() {
+        assert!(SONGS.iter().any(|s| s.1.len() > 80));
     }
 }
