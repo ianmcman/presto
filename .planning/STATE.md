@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-stopped_at: Phase 6 context gathered
-last_updated: "2026-10-08T23:19:25.748Z"
+status: in_progress
+stopped_at: Phase 06 Plan 02 completed
+last_updated: "2026-10-08T23:30:00Z"
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 51
-  completed_plans: 47
+  completed_plans: 49
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-07)
 
 **Core value:** Full-catalog Apple Music playback and library browsing from a fast native Linux UI, without an Apple Developer account.
-**Current focus:** Phase 05 — playback-ui-and-demo-mode
+**Current focus:** Phase 06 — desktop-integration
 
 ## Current Position
 
 Phase: 6
-Plan: Not started
+Plan: 02 (completed)
 
 ## Performance Metrics
 
@@ -51,6 +51,10 @@ None yet.
 - [Phase 04]: Cache dir resolved by pure cache_base helper; store is disposable (recreate on bad version/corruption)
 - [Phase 04]: Mock search hints match word prefix
 - [Phase 05]: Backend::shutdown takes &self; App::on_exit calls it
+- [Phase 06]: Stop operation maps to Command::Pause (no Stop in engine)
+- [Phase 06]: Seek targets below MIN_SEEK_MS (3s) clamp up; Phase 3 finding on unanswered seeks
+- [Phase 06]: MPRIS art_url always None; art_file uses cache path only (D-10)
+- [Phase 06]: Loading state shows as MPRIS Paused; not-ready forces Stopped with no track
 
 ### Pending Todos
 
@@ -71,9 +75,11 @@ None yet.
 | Phase 05 P07 | 25min | 3 tasks | 19 files |
 | Phase 05 P08 | 15min | 2 tasks | 3 files |
 | Phase 05 P10 | 20min | 2 tasks | 3 files |
+| Phase 06 P01 | 25min | 2 tasks | 6 files |
+| Phase 06 P02 | 35min | 2 tasks | 3 files |
 
 ## Session Continuity
 
-Last session: 2026-10-08T22:54:12.457Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-desktop-integration/06-CONTEXT.md
+Last session: 2026-10-08T23:30:00Z
+Stopped at: Phase 06 Plan 02 completed; 49/51 plans completed
+Next: Phase 06 Plan 03 (CLI server and control socket accept loop)
