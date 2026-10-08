@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createBridge, mapState, mapItem } = require('../bridge.js');
+const { createBridge, mapState, mapItem, readyInfo, BRIDGE_VERSION } = require('../bridge.js');
 
 const all = []; // every payload, for the token check
 
@@ -94,6 +94,20 @@ test('set_queue', async () => {
   assert.deepEqual(mk.calls, [['setQueue', { songs: ['1', '2'], startPlaying: true }]]);
   await b.handle(cmd(2, { type: 'set_queue', ids: ['1', '2'], start: 1 }));
   assert.deepEqual(mk.calls.at(-1), ['idx', 1]);
+});
+
+test('set_queue play flag', async () => {
+  const { b, mk } = setup();
+  await b.handle(cmd(1, { type: 'set_queue', ids: ['1'], start: 0, play: false }));
+  assert.equal(mk.calls[0][1].startPlaying, false);
+});
+
+test('readyInfo', () => {
+  const { MusicKit } = setup();
+  const info = readyInfo(MusicKit);
+  all.push(info);
+  assert.deepEqual(info, { version: BRIDGE_VERSION, capabilities: ['playback', 'queue', 'api'], musickit_build: '3.test' });
+  assert.equal(readyInfo({}).musickit_build, null);
 });
 
 test('unknown cmd is internal', async () => {

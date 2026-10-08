@@ -4,6 +4,12 @@
   'use strict';
 
   const MAX_JSON = 4_000_000; // presto-ipc max line is 4 MiB
+  const BRIDGE_VERSION = '1.1.0';
+  const CAPABILITIES = ['playback', 'queue', 'api'];
+
+  function readyInfo(MusicKit) {
+    return { version: BRIDGE_VERSION, capabilities: CAPABILITIES.slice(), musickit_build: MusicKit.version ?? null };
+  }
 
   function mapState(MusicKit, n) {
     const states = MusicKit.PlaybackStates || {};
@@ -77,7 +83,7 @@
           break;
         case 'set_queue':
           seq++;
-          await mk.setQueue({ songs: cmd.ids, startPlaying: true });
+          await mk.setQueue({ songs: cmd.ids, startPlaying: cmd.play !== false });
           if (cmd.start > 0) await mk.changeToMediaAtIndex(cmd.start);
           break;
         default: throw new Error('unknown command ' + cmd.type);
@@ -172,13 +178,13 @@
       clearInterval(t);
       const b = createBridge({ MusicKit: win.MusicKit, mk, presto: win.__presto, setInterval });
       win.__presto.onFrame((f) => b.handle(f));
-      win.__presto.ready(b.diag());
+      win.__presto.ready({ ...readyInfo(win.MusicKit), diag: b.diag() });
       b.start();
     }, 250);
   }
 
   if (typeof module === 'object' && module.exports) {
-    module.exports = { createBridge, mapState, mapItem, mapApiError, install };
+    module.exports = { createBridge, mapState, mapItem, mapApiError, install, BRIDGE_VERSION, CAPABILITIES, readyInfo };
   } else {
     install(window);
   }
