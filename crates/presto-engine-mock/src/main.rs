@@ -8,7 +8,7 @@ use futures_util::StreamExt;
 use player::Player;
 use presto_ipc::transport::{self, TransportError};
 use presto_ipc::{
-    AuthState, Command, ErrorKind, Event, FaultSpec, Frame, Hello, IpcError, Kind, Outcome, PROTO,
+    AuthState, CdmState, Command, ErrorKind, Event, FaultSpec, Frame, Hello, IpcError, Kind, Outcome, PROTO,
     Role, caps,
 };
 use std::path::PathBuf;
@@ -32,6 +32,12 @@ struct Args {
     /// Never send bridge_ready or the initial auth event.
     #[arg(long)]
     bridge_missing: bool,
+    /// Test only: send cdm checking, then after N ms cdm ready (or failed with --cdm-fail) before the bridge.
+    #[arg(long)]
+    cdm_delay_ms: Option<u64>,
+    /// Test only: with --cdm-delay-ms, report cdm failed and never send bridge_ready or auth.
+    #[arg(long)]
+    cdm_fail: bool,
     /// Capabilities advertised in bridge_ready.
     #[arg(long, value_delimiter = ',', default_value = "playback,queue,api")]
     bridge_caps: Vec<String>,
@@ -264,6 +270,25 @@ async fn main() {
     ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
     let (mut sink, mut stream) = conn.split();
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Frame>();
+    if let Some(d) = args.cdm_delay_ms {
+        let deferred = std::mem::replace(
+            &mut startup,
+            evts(vec![Event::Cdm { state: CdmState::Checking, version: None, message: None }]),
+        );
+        let fail = args.cdm_fail;
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(d)).await;
+            let done = if fail {
+                Event::Cdm { state: CdmState::Failed, version: None, message: Some("mock: CDM download failed".into()) }
+            } else {
+                Event::Cdm { state: CdmState::Ready, version: Some("mock".into()), message: None }
+            };
+            for f in evts(vec![done]).into_iter().chain(if fail { vec![] } else { deferred }) {
+                let _ = tx.send(f);
+            }
+        });
+    }
     // (frames, forced): forced frames (mock acks) bypass hang gating and slow delay
     let mut out = (startup, false);
     loop {

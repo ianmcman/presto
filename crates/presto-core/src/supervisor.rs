@@ -4,13 +4,13 @@ use crate::backoff::Backoff;
 use crate::config::{CoreConfig, check_bridge};
 use crate::mirror::{Snapshot, queue_key, snapshot};
 use crate::paths::{Pidfile, new_log_file, sweep_stale, tail};
-use crate::state::{BridgeInfo, CoreState, EngineStatus};
+use crate::state::{BridgeInfo, CdmInfo, CoreState, EngineStatus};
 use nix::errno::Errno;
 use nix::sys::signal::{Signal, killpg};
 use nix::unistd::Pid;
 use presto_ipc::transport::{self, Conn, TransportError};
 use presto_ipc::{
-    ApiRequest, PlayState, AuthState, Command, ErrorKind, Event, FaultSpec, Frame, Hello, IpcError, Kind, Outcome, PROTO,
+    ApiRequest, CdmState, PlayState, AuthState, Command, ErrorKind, Event, FaultSpec, Frame, Hello, IpcError, Kind, Outcome, PROTO,
     Role, caps,
 };
 use std::collections::{HashMap, VecDeque};
@@ -625,6 +625,7 @@ impl Actor {
         self.status(EngineStatus::Starting);
         self.set(|c| {
             c.bridge = None;
+            c.cdm = None;
             c.auth = None;
         });
         self.attempt_start = std::time::Instant::now();
@@ -692,7 +693,7 @@ impl Actor {
         let mut s = Sess { conn, pending: HashMap::new(), queued: Vec::new(), next_id: 1 };
         let (mut ping_seq, mut unanswered) = (0u64, 0u32);
         let mut drift_armed = true;
-        let drift_at = Instant::now() + t.drift;
+        let mut drift_at = Instant::now() + t.drift;
         let mut tick = interval(t.heartbeat);
         tick.set_missed_tick_behavior(MissedTickBehavior::Delay);
 
@@ -760,6 +761,18 @@ impl Actor {
                                 self.status(EngineStatus::Drift { reason, log_path: log_path.clone() });
                             }
                         }
+                    }
+                    Frame::Evt { evt: Event::Cdm { state, version, message } } => {
+                        // First run downloads the CDM before the page exists: hold drift until it is ready.
+                        match state {
+                            CdmState::Checking | CdmState::Failed => drift_armed = false,
+                            CdmState::Ready => {
+                                drift_armed = !self.bridge_seen && !self.drift;
+                                drift_at = Instant::now() + t.drift;
+                            }
+                        }
+                        eprintln!("presto-core: cdm {state:?} {} {}", version.as_deref().unwrap_or("-"), message.as_deref().unwrap_or(""));
+                        self.set(|c| c.cdm = Some(CdmInfo { state, version, message }));
                     }
                     Frame::Evt { evt } => {
                         if self.on_event(evt) && hello.has(caps::WINDOW) {

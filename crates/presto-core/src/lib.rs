@@ -9,5 +9,5 @@ pub mod state;
 mod supervisor;
 
 pub use config::{CoreConfig, Launch, Launcher, REQUIRED_BRIDGE_CAPS, Timings, check_bridge};
-pub use state::{BridgeInfo, CoreState, EngineStatus};
+pub use state::{BridgeInfo, CdmInfo, CoreState, EngineStatus};
 pub use supervisor::{Core, CoreHandle};
