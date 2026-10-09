@@ -1,0 +1,57 @@
+# Maintainer: Ian McManus
+# Not published to the AUR (D-06). The Widevine CDM is never fetched or shipped here;
+# castlabs Electron downloads it into the user's profile on first run.
+pkgname=presto-git
+pkgver=r0.0
+pkgrel=1
+pkgdesc='Native Apple Music client for Linux (egui UI, castlabs Electron playback engine)'
+arch=(x86_64)  # no Linux aarch64 Widevine CDM exists
+url='https://github.com/ianmcman/presto'
+license=('MIT')
+depends=(gtk3 nss alsa-lib libcups libdrm mesa libglvnd libxkbcommon wayland
+         libx11 libxcb libxcomposite libxdamage libxrandr libxcursor libxi libxinerama
+         libxext libxfixes libxrender at-spi2-core dbus glib2 pango cairo systemd-libs)
+makedepends=(rust git nodejs npm)
+provides=(presto)
+conflicts=(presto)
+options=(!strip !debug !lto)  # stripping Electron's binaries is unsafe and slow
+source=("presto::git+$url.git")
+sha256sums=(SKIP)
+
+pkgver() {
+  cd presto
+  printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  cd presto
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd presto
+  export RUSTUP_TOOLCHAIN=stable CARGO_TARGET_DIR=target
+  cargo build --frozen --release -p presto -p presto-engine-mock
+  cd engine
+  npm ci --allow-git=root               # castlabs ECS from engine/package-lock.json; network needed
+  node node_modules/electron/install.js # writes dist/ and path.txt; no CDM
+  test -f node_modules/electron/path.txt
+}
+
+package() {
+  cd presto
+  install -Dm755 target/release/presto "$pkgdir/usr/bin/presto"
+  install -Dm755 target/release/presto-engine-mock "$pkgdir/usr/bin/presto-engine-mock"  # for presto --demo
+  install -d "$pkgdir/usr/lib/presto"
+  cp -a engine "$pkgdir/usr/lib/presto/engine"
+  rm -rf "$pkgdir/usr/lib/presto/engine/test"
+  # Namespace sandbox works without setuid on Arch (spike); never setuid, never disable the sandbox.
+  chmod 755 "$pkgdir/usr/lib/presto/engine/node_modules/electron/dist/chrome-sandbox"
+  install -Dm644 packaging/presto.desktop "$pkgdir/usr/share/applications/presto.desktop"
+  install -Dm644 packaging/presto.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/presto.svg"
+  if find "$pkgdir" -iname '*widevine*' | grep -q .; then
+    echo 'Widevine file in package' >&2
+    return 1
+  fi
+}

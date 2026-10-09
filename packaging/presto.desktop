@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Presto
+Comment=Apple Music for Linux
+Exec=presto
+Icon=presto
+Categories=AudioVideo;Audio;Music;Player;
+Terminal=false
+StartupWMClass=presto
