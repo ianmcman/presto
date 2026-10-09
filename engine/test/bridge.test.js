@@ -96,6 +96,12 @@ test('set_queue', async () => {
   assert.deepEqual(mk.calls.at(-1), ['idx', 1]);
 });
 
+test('set_queue station', async () => {
+  const { b, mk } = setup();
+  await b.handle(cmd(1, { type: 'set_queue', ids: ['ra.123'], start: 0 }));
+  assert.deepEqual(mk.calls, [['setQueue', { station: 'ra.123', startPlaying: true }]]);
+});
+
 test('set_queue play flag', async () => {
   const { b, mk } = setup();
   await b.handle(cmd(1, { type: 'set_queue', ids: ['1'], start: 0, play: false }));

@@ -83,7 +83,11 @@
           break;
         case 'set_queue':
           seq++;
-          await mk.setQueue({ songs: cmd.ids, startPlaying: cmd.play !== false });
+          // Stations are not song lists; a lone "ra.*" id is a station (catalog and personal).
+          await mk.setQueue({
+            ...(cmd.ids.length === 1 && /^ra\./.test(cmd.ids[0]) ? { station: cmd.ids[0] } : { songs: cmd.ids }),
+            startPlaying: cmd.play !== false,
+          });
           if (cmd.start > 0) await mk.changeToMediaAtIndex(cmd.start);
           break;
         default: throw new Error('unknown command ' + cmd.type);

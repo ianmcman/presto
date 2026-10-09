@@ -73,11 +73,12 @@ pub(crate) fn item_card(app: &App, ui: &mut Ui, item: &Item) -> egui::Response {
     card(ui, &app.palette, &art, &item.id, &item.name, item.subtitle.as_deref(), item.kind == ItemKind::Artist)
 }
 
-/// Opens the item's page; songs play on their own.
+/// Opens the item's page; songs and stations play on their own.
 pub(crate) fn open_item(app: &mut App, item: &Item) {
     match page_for(item) {
         Some(p) => app.act(Action::Open(p)),
-        None if item.kind == ItemKind::Song => {
+        // The engine turns a lone "ra.*" id into a MusicKit station queue.
+        None if matches!(item.kind, ItemKind::Song | ItemKind::Station) => {
             app.act(Action::PlayList { ids: vec![queue_id(item)], start: 0, shuffle: false })
         }
         None => {}
