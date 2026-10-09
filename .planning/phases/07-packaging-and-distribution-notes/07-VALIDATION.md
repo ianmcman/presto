@@ -1,9 +1,9 @@
 ---
 phase: 7
 slug: packaging-and-distribution-notes
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: pending-manual
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-10-08
 ---
 
@@ -30,19 +30,25 @@ created: 2026-10-08
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 7-xx-xx | TBD | TBD | PKG-01 | unit | `cargo test -p presto launch::tests::engine_dir` | ❌ W0 | ⬜ pending |
-| 7-xx-xx | TBD | TBD | PKG-01 | unit | `cargo test -p presto-ipc` (cdm snapshot, token guard, doc coverage) | ✅ update | ⬜ pending |
-| 7-xx-xx | TBD | TBD | PKG-01 | script | `sh packaging/scan-no-cdm.sh presto-git-*.pkg.tar.zst` | ❌ W0 | ⬜ pending |
-| 7-xx-xx | TBD | TBD | PKG-02 | smoke | `grep -q Flathub docs/DISTRIBUTION.md && grep -q 'Apple Media Services' docs/DISTRIBUTION.md && grep -q DISTRIBUTION.md README.md` | ❌ W0 | ⬜ pending |
+| 07-01-T1 | 01 | 1 | PKG-01 | unit | `cargo test -p presto-ipc` | ✅ | ✅ green |
+| 07-01-T2 | 01 | 1 | PKG-01 | unit | `cd engine && npm test` | ✅ | ✅ green |
+| 07-02-T1 | 02 | 2 | PKG-01 | unit | `cargo test -p presto-core --test cdm` | ✅ | ✅ green |
+| 07-02-T2 | 02 | 2 | PKG-01 | build | `cargo build -p presto` | ✅ | ✅ green |
+| 07-03-T1 | 03 | 1 | PKG-01 | unit | `cargo test -p presto --lib -- launch:: cli::` | ✅ | ✅ green |
+| 07-03-T2 | 03 | 1 | PKG-01 | script | `sh packaging/scan-no-cdm.sh` self-check | ✅ | ✅ green |
+| 07-04-T1 | 04 | 1 | PKG-02 | smoke | `grep -q Flathub docs/DISTRIBUTION.md && grep -q 'Apple Media Services' docs/DISTRIBUTION.md && grep -q DISTRIBUTION.md README.md` | ✅ | ✅ green |
+| 07-04-T2 | 04 | 1 | PKG-02 | smoke | same grep smoke | ✅ | ✅ green |
+| 07-05-T1 | 05 | 3 | PKG-01 | script | `sh packaging/scan-no-cdm.sh packaging/arch/presto-git-*.pkg.tar.zst` | ✅ | ✅ green |
+| 07-05-T3 | 05 | 3 | PKG-01 | manual | `07-MANUAL-CHECKLIST.md` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
 ## Wave 0 Requirements
 
-- [ ] `packaging/scan-no-cdm.sh`
-- [ ] `engine_dir` unit tests in `crates/presto/src/launch.rs`
+- [x] `packaging/scan-no-cdm.sh`
+- [x] `engine_dir` unit tests in `crates/presto/src/launch.rs`
 - [ ] updated insta snapshot for `Frame` schema
-- [ ] `07-MANUAL-CHECKLIST.md`
+- [x] `07-MANUAL-CHECKLIST.md`
 - [ ] `devtools` installed for clean-chroot build
 
 ## Manual-Only Verifications
@@ -58,6 +64,6 @@ created: 2026-10-08
 - [ ] Wave 0 covers all missing references
 - [ ] No watch-mode flags
 - [ ] Feedback latency < 60s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
