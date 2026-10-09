@@ -2,7 +2,7 @@
 # Not published to the AUR (D-06). The Widevine CDM is never fetched or shipped here;
 # castlabs Electron downloads it into the user's profile on first run.
 pkgname=presto-git
-pkgver=r0.0
+pkgver=r233.49dcfe7
 pkgrel=1
 pkgdesc='Native Apple Music client for Linux (egui UI, castlabs Electron playback engine)'
 arch=(x86_64)  # no Linux aarch64 Widevine CDM exists
@@ -15,7 +15,7 @@ makedepends=(rust git nodejs npm)
 provides=(presto)
 conflicts=(presto)
 options=(!strip !debug !lto)  # stripping Electron's binaries is unsafe and slow
-source=("presto::git+$url.git")
+source=("presto::git+${PRESTO_SRC:-$url.git}")  # PRESTO_SRC=file:///path builds a local clone (repo is private)
 sha256sums=(SKIP)
 
 pkgver() {
@@ -32,6 +32,7 @@ prepare() {
 build() {
   cd presto
   export RUSTUP_TOOLCHAIN=stable CARGO_TARGET_DIR=target
+  export RUSTFLAGS="${RUSTFLAGS} --remap-path-prefix=$PWD=/build"  # no $srcdir in the binary
   cargo build --frozen --release -p presto -p presto-engine-mock
   cd engine
   npm ci --allow-git=root               # castlabs ECS from engine/package-lock.json; network needed
