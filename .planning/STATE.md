@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Phase 06 Plan 03 completed
-last_updated: "2026-10-08T23:45:00Z"
+stopped_at: Phase 06 Plan 04 completed
+last_updated: "2026-10-08T23:50:00Z"
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 51
-  completed_plans: 50
+  completed_plans: 51
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-10-07)
 ## Current Position
 
 Phase: 6
-Plan: 03 (completed)
+Plan: 04 (completed)
 
 ## Performance Metrics
 
@@ -55,6 +55,9 @@ None yet.
 - [Phase 06]: Seek targets below MIN_SEEK_MS (3s) clamp up; Phase 3 finding on unanswered seeks
 - [Phase 06]: MPRIS art_url always None; art_file uses cache path only (D-10)
 - [Phase 06]: Loading state shows as MPRIS Paused; not-ready forces Stopped with no track
+- [Phase 06 P04]: MPRIS bus names "presto" (real) and "presto-demo" (demo) prevent collision
+- [Phase 06 P04]: Pump on backend.spawn() tokio task, not std::thread
+- [Phase 06 P04]: MediaSession flags stay in engine/main.js (D-12); never touch them from Rust side
 
 ### Pending Todos
 
@@ -78,9 +81,10 @@ None yet.
 | Phase 06 P01 | 25min | 2 tasks | 6 files |
 | Phase 06 P02 | 35min | 2 tasks | 3 files |
 | Phase 06 P03 | 120min | 2 tasks | 9 files |
+| Phase 06 P04 | 25min | 2 tasks | 5 files |
 
 ## Session Continuity
 
-Last session: 2026-10-08T23:45:00Z
-Stopped at: Phase 06 Plan 03 completed; 50/51 plans completed
-Next: Phase 06 Plan 04 (MPRIS media keys and now-playing)
+Last session: 2026-10-08T23:50:00Z
+Stopped at: Phase 06 Plan 04 completed; 51/51 plans completed
+Next: Phase 06 Plan 05 (UI Views and Layout)
