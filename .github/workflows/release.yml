@@ -11,7 +11,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
       - uses: actions/setup-node@v4
         with:
           node-version: 22
