@@ -145,7 +145,7 @@ Plans:
 - [x] 06-02-PLAN.md: pure op planner and status/MPRIS state mapping, fastframe-now-playing dep (wave 2)
 - [x] 06-03-PLAN.md: control socket server, CLI client, flock single instance, main routing (wave 3)
 - [x] 06-04-PLAN.md: MPRIS pump task, startup wiring, private-bus test, MediaSession guard (wave 4)
-- [ ] 06-05-PLAN.md: validation map, full suite, manual Wayland checklist (wave 5, checkpoint)
+- [x] 06-05-PLAN.md: validation map, full suite, manual Wayland checklist (wave 5, checkpoint)
 
 ### Phase 7: Packaging and Distribution Notes
 **Goal**: Presto installs on Arch with no CDM bundled, and distribution blockers are written down. (Outline.)
