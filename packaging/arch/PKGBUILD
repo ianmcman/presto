@@ -2,7 +2,7 @@
 # Not published to the AUR (D-06). The Widevine CDM is never fetched or shipped here;
 # castlabs Electron downloads it into the user's profile on first run.
 pkgname=presto-git
-pkgver=r233.49dcfe7
+pkgver=r235.5f34913
 pkgrel=1
 pkgdesc='Native Apple Music client for Linux (egui UI, castlabs Electron playback engine)'
 arch=(x86_64)  # no Linux aarch64 Widevine CDM exists
@@ -47,8 +47,13 @@ package() {
   install -d "$pkgdir/usr/lib/presto"
   cp -a engine "$pkgdir/usr/lib/presto/engine"
   rm -rf "$pkgdir/usr/lib/presto/engine/test"
+  # Build-time only: the app execs dist/electron directly (path.txt). Drops namcap python/nodejs false positives.
+  local e="$pkgdir/usr/lib/presto/engine/node_modules"
+  rm -f "$e/electron/vmp-resign.py" "$e/electron/cli.js" "$e/electron/install.js"
+  find "$e/@electron-internal/extract-zip" -name '*.node' ! -name '*linux-x64-gnu.node' -delete
   # Namespace sandbox works without setuid on Arch (spike); never setuid, never disable the sandbox.
   chmod 755 "$pkgdir/usr/lib/presto/engine/node_modules/electron/dist/chrome-sandbox"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   install -Dm644 packaging/presto.desktop "$pkgdir/usr/share/applications/presto.desktop"
   install -Dm644 packaging/presto.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/presto.svg"
   if find "$pkgdir" -iname '*widevine*' | grep -q .; then
