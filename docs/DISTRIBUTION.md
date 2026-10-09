@@ -78,15 +78,22 @@ Publishing to the AUR or Flathub is not done. It waits on the user's decision ab
 
 ## Installing and running (Arch)
 
-Install:
+Install, prebuilt (`presto-bin`, downloads the release tarball, compiles nothing, x86_64 only):
 
 ```
 git clone https://github.com/ianmcman/presto
+cd presto/packaging/arch-bin
+makepkg -si
+```
+
+Install, from source (`presto-git`, builds GitHub main, about 9 minutes):
+
+```
 cd presto/packaging/arch
 makepkg -si
 ```
 
-The package is `presto-git` (`license=('MIT')`, matching the repo LICENSE, installed to `/usr/share/licenses/presto-git/`), built from GitHub main. A clean-chroot build with `devtools` (`pkgctl build`) is optional.
+Both are `license=('MIT')`, matching the repo LICENSE, installed to `/usr/share/licenses/<pkgname>/`, and conflict with each other. A clean-chroot build with `devtools` (`pkgctl build`) is optional.
 
 Installed files: `/usr/bin/presto`, `/usr/bin/presto-engine-mock`, `/usr/lib/presto/engine/`, `/usr/share/applications/presto.desktop`, `/usr/share/icons/hicolor/scalable/apps/presto.svg`.
 
@@ -110,8 +117,17 @@ Demo without an account: `presto --demo`.
 ### Uninstall
 
 ```
-sudo pacman -Rns presto-git
+sudo pacman -Rns presto-bin   # or presto-git
 rm -rf ~/.local/state/presto ~/.cache/presto ~/.config/presto
 ```
 
 pacman does not touch the second line's paths. They hold the profile, sign-in cookies, the CDM and the cache.
+
+## Cutting a release
+
+1. Bump the version if needed.
+2. `git tag vX.Y.Z && git push origin vX.Y.Z`
+3. The `release` workflow runs `packaging/pack-release.sh` and attaches `presto-X.Y.Z-x86_64.tar.gz` and its `.sha256` to the GitHub Release.
+4. Set `pkgver` and `sha256sums` in `packaging/arch-bin/PKGBUILD` from the `.sha256` asset and commit.
+
+`packaging/pack-release.sh X.Y.Z` runs the same pack step locally. `PACK_SKIP_BUILD=1` reuses an existing `target/release` and `engine/node_modules`. The tarball is x86_64 only and contains no Widevine file.

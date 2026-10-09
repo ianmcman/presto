@@ -15,7 +15,18 @@ cargo run -p presto -- --demo
 
 ## Install (Arch)
 
-Build with `packaging/arch/PKGBUILD` (`makepkg -si`).
+Prebuilt, no compile (`presto-bin`):
+
+```
+cd packaging/arch-bin && makepkg -si
+```
+
+From source, about 9 minutes (`presto-git`):
+
+```
+cd packaging/arch && makepkg -si
+```
+
 See [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md) for first-run CDM download, data paths, uninstall and distribution blockers.
 
 ## Layout
