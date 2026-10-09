@@ -231,6 +231,10 @@ impl crate::control::Control for BackendControl {
     fn raise(&self) {
         self.ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
         self.ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+        // Wayland clients cannot unminimize themselves; flag the window so the shell shows it.
+        self.ctx.send_viewport_cmd(egui::ViewportCommand::RequestUserAttention(
+            egui::UserAttentionType::Informational,
+        ));
         self.ctx.request_repaint();
     }
 

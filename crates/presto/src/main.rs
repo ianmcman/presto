@@ -82,7 +82,13 @@ fn main() -> eframe::Result {
                     }
                 }
             };
-            backend.spawn(ctl::serve(listener, backend.state(), ctl.clone()));
+            let state = backend.state();
+            let served = ctl.clone();
+            // The guard owns the flock and unlinks the socket on drop; it must outlive this closure.
+            backend.spawn(async move {
+                let _guard = guard;
+                ctl::serve(listener, state, served).await
+            });
             presto::desktop::start(&backend, ctl, presto::desktop::app_for(demo));
             Ok(Box::new(App::new(backend, demo, &cc.egui_ctx)))
         }),

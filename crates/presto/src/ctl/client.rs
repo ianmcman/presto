@@ -62,7 +62,7 @@ pub fn run(p: &CtlPaths, sub: &Sub) -> i32 {
         Ok(op) => {
             match &op {
                 presto_ipc::ctl::CtlOp::Subscribe => {
-                    run_subscribe(p)
+                    run_subscribe(p, matches!(sub, Sub::Status { json: true, .. }))
                 }
                 _ => {
                     match request(p, op.clone()) {
@@ -102,7 +102,7 @@ pub fn run(p: &CtlPaths, sub: &Sub) -> i32 {
     }
 }
 
-fn run_subscribe(p: &CtlPaths) -> i32 {
+fn run_subscribe(p: &CtlPaths, json: bool) -> i32 {
     match UnixStream::connect(&p.sock) {
         Err(_) => {
             eprintln!("presto is not running");
@@ -137,7 +137,10 @@ fn run_subscribe(p: &CtlPaths) -> i32 {
 
                 if let Ok(reply) = serde_json::from_str::<CtlReply>(&response) {
                     if let Some(status) = reply.status {
-                        println!("{}", one_line(&status));
+                        match (json, serde_json::to_string(&status)) {
+                            (true, Ok(line)) => println!("{}", line),
+                            _ => println!("{}", one_line(&status)),
+                        }
                         let _ = std::io::stdout().flush();
                     }
                 }
