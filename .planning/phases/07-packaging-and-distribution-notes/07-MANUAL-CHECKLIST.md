@@ -16,7 +16,7 @@ Steps: `sudo pacman -S --needed devtools`; `cd packaging/arch && pkgctl build` (
 
 Expected: package builds; on failure record which `depends`/`makedepends` was missing.
 
-Result: partial: makepkg (host) pass. Chroot build not yet run.
+Result: pass. Repo is now public, default git+https source worked. `presto-git r234.d321670-1` built in the devtools chroot; depends/makedepends resolved. The first chroot attempt failed on a lagging archlinux.cachyos.org mirror (404s) and an invalid pacman signature; fixed by refreshing archlinux-keyring and using an official Arch mirror. Environment issue, not a PKGBUILD one.
 
 ---
 
@@ -26,7 +26,7 @@ Steps: `sh ../scan-no-cdm.sh presto-git-*.pkg.tar.zst` on the chroot-built packa
 
 Expected: `ok: no widevine`.
 
-Result: partial: host-built package passes. Chroot-built package not yet checked.
+Result: pass. `ok: no widevine` on the chroot-built package.
 
 ---
 
@@ -36,7 +36,7 @@ Steps: `sudo pacman -U presto-git-*.pkg.tar.zst`; `presto --help`.
 
 Expected: help mentions `lib/presto/engine`; Presto appears in the app launcher with the icon.
 
-Result:
+Result: pass. Not confirmed: `presto --help` text and launcher icon.
 
 ---
 
@@ -46,7 +46,7 @@ Steps: `XDG_STATE_HOME=$(mktemp -d) XDG_CACHE_HOME=$(mktemp -d) presto` (keeps t
 
 Expected: "Preparing playback components…" appears, no drift error even if the download passes 15 s, then the Apple Music sign-in window opens.
 
-Result:
+Result: pass. Log showed `cdm Checking` then `cdm Ready 4.10.3112.0`.
 
 ---
 
@@ -56,7 +56,7 @@ Steps: sign in with an Apple account, play a catalog track. Then `find "$XDG_STA
 
 Expected: a catalog track plays with audio; the CDM is found in the temporary profile. Record its version.
 
-Result:
+Result: pass. Signed in, tracks played. CDM at `<state>/presto/engine-profile/WidevineCdm/4.10.3112.0/_platform_specific/linux_x64/libwidevinecdm.so`. Version 4.10.3112.0.
 
 ---
 
@@ -66,7 +66,7 @@ Steps: after playback, `find /usr/lib/presto -newer /usr/bin/presto -type f`.
 
 Expected: no output (Electron writes nothing under /usr).
 
-Result:
+Result: pass. `find /usr/lib/presto -newer /usr/bin/presto -type f` printed nothing.
 
 ---
 
@@ -76,7 +76,7 @@ Steps: disconnect the network, run item 4's command with new temp dirs, wait up 
 
 Expected: panel "Couldn't download the Widevine playback component" naming the cause; no Retry button; quitting Presto leaves no engine process (`pgrep -f presto/engine` empty).
 
-Result:
+Result: skipped (optional).
 
 ---
 
@@ -86,7 +86,7 @@ Steps: `presto --demo`.
 
 Expected: demo UI plays mock tracks.
 
-Result:
+Result: partial: `presto --demo` launched and spawned an engine (log under `~/.local/state/presto/demo/logs/`). Mock-track playback not confirmed. Open.
 
 ---
 
@@ -96,6 +96,13 @@ Steps: `sudo pacman -Rns presto-git`, then the `rm -rf` line from docs/DISTRIBUT
 
 Expected: `/usr/lib/presto` gone; docs match what was observed.
 
-Result:
+Result: partial: `sudo pacman -Rns presto-git` ran cleanly (332.39 MiB removed, hooks ran). Not checked: `/usr/lib/presto` gone, and the `rm -rf` line from docs/DISTRIBUTION.md. Open.
 
 ---
+
+## Notes
+
+- Packaging fix after namcap: LICENSE installed to `/usr/share/licenses/presto-git/` (namcap E for MIT license file); `vmp-resign.py`, `cli.js`, `install.js` and non-linux-x64-gnu `extract-zip` prebuilds removed from the package (the app execs `dist/electron` via `path.txt`). namcap not installed on the host, not re-run. Rebuilt package: `presto-git-r235.5f34913-1`, 119 MB (113.9 MiB), scan ok, one `dist/electron`.
+- License decision: MIT.
+- Out-of-scope bug: clicking a radio station (non-playlist) does not play. Not fixed here.
+- Items 8 and 9 remain open; 7 skipped.

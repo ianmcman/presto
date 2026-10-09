@@ -162,7 +162,7 @@ Plans:
 - [x] 07-02-PLAN.md: Supervisor holds drift during CDM download; UI shows CDM progress and failure (wave 2)
 - [x] 07-03-PLAN.md: Exe-relative engine dir; PKGBUILD, desktop entry, icon, CDM scan script (wave 1)
 - [x] 07-04-PLAN.md: docs/DISTRIBUTION.md blockers, feasibility, end-user section; README link (wave 1)
-- [ ] 07-05-PLAN.md: Real makepkg build and scan, manual chroot and first-run checklist (wave 3, checkpoint)
+- [x] 07-05-PLAN.md: Real makepkg build and scan, manual chroot and first-run checklist (wave 3, checkpoint)
 
 ## Progress
 

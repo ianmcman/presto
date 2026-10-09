@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-10-09T02:25:31.917Z"
+stopped_at: Completed 07-05-PLAN.md (items 8, 9 open)
+last_updated: "2026-10-09T03:10:38.233Z"
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 56
-  completed_plans: 55
+  completed_plans: 56
 ---
 
 # Project State
@@ -59,6 +59,7 @@ None yet.
 - [Phase 06 P04]: Pump on backend.spawn() tokio task, not std::thread
 - [Phase 06 P04]: MediaSession flags stay in engine/main.js (D-12); never touch them from Rust side
 - [Phase 07]: Cdm checking/failed disarms drift timer; cdm ready re-arms it; CDM failure panel has no button
+- [Phase 07]: License: MIT, matching repo LICENSE
 
 ### Pending Todos
 
@@ -85,9 +86,10 @@ None yet.
 | Phase 06 P04 | 25min | 2 tasks | 5 files |
 | Phase 07 P01 | 15min | 2 tasks | 10 files |
 | Phase 07 P02 | 15min | 2 tasks | 6 files |
+| Phase 07 P05 | 30min | 3 tasks | 5 files |
 
 ## Session Continuity
 
-Last session: 2026-10-09T02:25:31.916Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-10-09T03:10:38.232Z
+Stopped at: Completed 07-05-PLAN.md (items 8, 9 open)
 Next: Phase 06 Plan 05 (UI Views and Layout)

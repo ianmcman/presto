@@ -39,7 +39,7 @@ created: 2026-10-08
 | 07-04-T1 | 04 | 1 | PKG-02 | smoke | `grep -q Flathub docs/DISTRIBUTION.md && grep -q 'Apple Media Services' docs/DISTRIBUTION.md && grep -q DISTRIBUTION.md README.md` | ✅ | ✅ green |
 | 07-04-T2 | 04 | 1 | PKG-02 | smoke | same grep smoke | ✅ | ✅ green |
 | 07-05-T1 | 05 | 3 | PKG-01 | script | `sh packaging/scan-no-cdm.sh packaging/arch/presto-git-*.pkg.tar.zst` | ✅ | ✅ green |
-| 07-05-T3 | 05 | 3 | PKG-01 | manual | `07-MANUAL-CHECKLIST.md` | ✅ | ⬜ pending |
+| 07-05-T3 | 05 | 3 | PKG-01 | manual | `07-MANUAL-CHECKLIST.md` | ✅ | ⚠️ partial: items 1-6 pass; 7 skipped; 8, 9 partial |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 

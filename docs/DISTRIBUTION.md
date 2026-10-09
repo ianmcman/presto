@@ -86,7 +86,7 @@ cd presto/packaging/arch
 makepkg -si
 ```
 
-The package is `presto-git` (`license=('MIT')`), built from GitHub main. A clean-chroot build with `devtools` (`pkgctl build`) is optional.
+The package is `presto-git` (`license=('MIT')`, matching the repo LICENSE, installed to `/usr/share/licenses/presto-git/`), built from GitHub main. A clean-chroot build with `devtools` (`pkgctl build`) is optional.
 
 Installed files: `/usr/bin/presto`, `/usr/bin/presto-engine-mock`, `/usr/lib/presto/engine/`, `/usr/share/applications/presto.desktop`, `/usr/share/icons/hicolor/scalable/apps/presto.svg`.
 
