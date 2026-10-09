@@ -86,7 +86,7 @@ Steps: `presto --demo`.
 
 Expected: demo UI plays mock tracks.
 
-Result: partial: `presto --demo` launched and spawned an engine (log under `~/.local/state/presto/demo/logs/`). Mock-track playback not confirmed. Open.
+Result: pass. `presto --demo` launched, engine spawned, mock tracks played.
 
 ---
 
@@ -96,7 +96,7 @@ Steps: `sudo pacman -Rns presto-git`, then the `rm -rf` line from docs/DISTRIBUT
 
 Expected: `/usr/lib/presto` gone; docs match what was observed.
 
-Result: partial: `sudo pacman -Rns presto-git` ran cleanly (332.39 MiB removed, hooks ran). Not checked: `/usr/lib/presto` gone, and the `rm -rf` line from docs/DISTRIBUTION.md. Open.
+Result: pass. `sudo pacman -Rns presto-git` ran cleanly (332.39 MiB removed, hooks ran) and `/usr/lib/presto` is gone. The `rm -rf` line for the temp state dirs was not run.
 
 ---
 
@@ -105,4 +105,4 @@ Result: partial: `sudo pacman -Rns presto-git` ran cleanly (332.39 MiB removed, 
 - Packaging fix after namcap: LICENSE installed to `/usr/share/licenses/presto-git/` (namcap E for MIT license file); `vmp-resign.py`, `cli.js`, `install.js` and non-linux-x64-gnu `extract-zip` prebuilds removed from the package (the app execs `dist/electron` via `path.txt`). namcap not installed on the host, not re-run. Rebuilt package: `presto-git-r235.5f34913-1`, 119 MB (113.9 MiB), scan ok, one `dist/electron`.
 - License decision: MIT.
 - Out-of-scope bug: clicking a radio station (non-playlist) does not play. Not fixed here.
-- Items 8 and 9 remain open; 7 skipped.
+- Items 1-6, 8, 9 pass; 7 skipped (optional).

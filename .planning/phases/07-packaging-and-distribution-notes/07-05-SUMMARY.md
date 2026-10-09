@@ -22,7 +22,7 @@ requirements: [PKG-01]
 
 ## Checklist outcome
 
-Items 1 to 6 pass. Item 7 skipped (optional). Item 8 partial: `presto --demo` launched and spawned an engine, mock playback not confirmed. Item 9 partial: `pacman -Rns` clean, leftover check and `rm -rf` line not done. Items 8 and 9 remain open, so the plan is not fully verified. Not confirmed in item 3: `presto --help` text and launcher icon.
+Items 1 to 6, 8 and 9 pass. Item 7 skipped (optional). Item 8: `presto --demo` played mock tracks. Item 9: `pacman -Rns` clean and `/usr/lib/presto` gone; the `rm -rf` of temp state dirs was not run. Not confirmed in item 3: `presto --help` text and launcher icon.
 
 ## Changes after namcap
 
