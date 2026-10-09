@@ -143,8 +143,8 @@ Plans:
 Plans:
 - [x] 06-01-PLAN.md: ctl wire types in presto-ipc, clap subcommands, seek/volume parsers (wave 1)
 - [x] 06-02-PLAN.md: pure op planner and status/MPRIS state mapping, fastframe-now-playing dep (wave 2)
-- [ ] 06-03-PLAN.md: control socket server, CLI client, flock single instance, main routing (wave 3)
-- [ ] 06-04-PLAN.md: MPRIS pump task, startup wiring, private-bus test, MediaSession guard (wave 4)
+- [x] 06-03-PLAN.md: control socket server, CLI client, flock single instance, main routing (wave 3)
+- [x] 06-04-PLAN.md: MPRIS pump task, startup wiring, private-bus test, MediaSession guard (wave 4)
 - [ ] 06-05-PLAN.md: validation map, full suite, manual Wayland checklist (wave 5, checkpoint)
 
 ### Phase 7: Packaging and Distribution Notes
@@ -166,5 +166,5 @@ Plans:
 | 3. Core Backend, Supervisor, Auth | 15/15 | Complete | 2026-10-08 |
 | 4. Data Layer and Cache | 9/9 | Complete | 2026-10-08 |
 | 5. Playback UI and Demo Mode | 11/11 | Complete    | 2026-10-08 |
-| 6. Desktop Integration | 2/5 | In Progress| 2026-10-08 |
+| 6. Desktop Integration | 4/5 | In Progress| 2026-10-08 |
 | 7. Packaging and Distribution Notes | 0/TBD | Not started | - |
