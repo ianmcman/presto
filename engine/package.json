@@ -4,7 +4,7 @@
   "private": true,
   "description": "Presto engine: castlabs Electron hosting music.apple.com, speaking presto-ipc over a Unix socket",
   "main": "main.js",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "start": "electron .",
     "test": "node --test"
