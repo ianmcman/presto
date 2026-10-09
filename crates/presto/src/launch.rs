@@ -47,6 +47,16 @@ pub fn demo_config(state_root: &Path, runtime_dir: &Path, mock: PathBuf, extra: 
     })
 }
 
+/// D-03: an installed engine next to the executable (`<exe>/../lib/presto/engine`) wins; else `./engine` for dev checkouts.
+pub fn default_engine_dir(exe: Option<&Path>) -> PathBuf {
+    if let Some(p) = exe.and_then(Path::parent).map(|d| d.join("../lib/presto/engine"))
+        && p.join("node_modules/electron/path.txt").exists()
+    {
+        return p;
+    }
+    PathBuf::from("engine")
+}
+
 pub fn real_config(engine_dir: &Path) -> io::Result<CoreConfig> {
     let launch = Launch::electron(engine_dir, &[])?;
     Ok(CoreConfig {
@@ -60,6 +70,31 @@ pub fn real_config(engine_dir: &Path) -> io::Result<CoreConfig> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn engine_dir_installed() {
+        let d = tempfile::tempdir().unwrap();
+        let e = d.path().join("usr/lib/presto/engine/node_modules/electron");
+        std::fs::create_dir_all(&e).unwrap();
+        std::fs::write(e.join("path.txt"), "x").unwrap();
+        std::fs::create_dir_all(d.path().join("usr/bin")).unwrap();
+        let exe = d.path().join("usr/bin/presto");
+        assert_eq!(
+            default_engine_dir(Some(&exe)),
+            d.path().join("usr/bin/../lib/presto/engine")
+        );
+    }
+
+    #[test]
+    fn engine_dir_missing_falls_back() {
+        let d = tempfile::tempdir().unwrap();
+        assert_eq!(default_engine_dir(Some(&d.path().join("usr/bin/presto"))), PathBuf::from("engine"));
+    }
+
+    #[test]
+    fn engine_dir_no_exe() {
+        assert_eq!(default_engine_dir(None), PathBuf::from("engine"));
+    }
 
     #[test]
     fn mock_path_missing() {

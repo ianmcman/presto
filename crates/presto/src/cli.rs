@@ -12,9 +12,9 @@ pub struct Cli {
     /// Mock engine fault, passed through (demo only, repeatable): none, hang, crash[@ms], auth_expired, slow[=ms], rate_limited[=ms], signed_out.
     #[arg(long = "fault", value_parser = parse_fault, requires = "demo")]
     pub faults: Vec<String>,
-    /// Engine directory holding node_modules/electron (real mode).
-    #[arg(long, env = "PRESTO_ENGINE_DIR", default_value = "engine")]
-    pub engine_dir: std::path::PathBuf,
+    /// Engine directory holding node_modules/electron (real mode). Default: <exe dir>/../lib/presto/engine when installed, else ./engine.
+    #[arg(long, env = "PRESTO_ENGINE_DIR")]
+    pub engine_dir: Option<std::path::PathBuf>,
     /// Subcommand to run; if not specified, launches the GUI.
     #[command(subcommand)]
     pub cmd: Option<Sub>,
@@ -133,9 +133,15 @@ mod tests {
             return;
         }
         let c = Cli::try_parse_from(["presto"]).unwrap();
-        assert_eq!(c.engine_dir, std::path::PathBuf::from("engine"));
+        assert!(c.engine_dir.is_none());
         assert!(!c.demo);
         assert!(c.cmd.is_none());
+    }
+
+    #[test]
+    fn cli_engine_dir_flag() {
+        let c = Cli::try_parse_from(["presto", "--engine-dir", "/x"]).unwrap();
+        assert_eq!(c.engine_dir, Some(std::path::PathBuf::from("/x")));
     }
 
     #[test]

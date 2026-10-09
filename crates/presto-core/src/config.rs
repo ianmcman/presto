@@ -24,7 +24,7 @@ impl Launch {
             io::Error::new(
                 e.kind(),
                 format!(
-                    "cannot read {}: {e}; run npm install --allow-git=root and node node_modules/electron/install.js in engine/",
+                    "cannot read {}: {e}; in a checkout run npm install --allow-git=root and node node_modules/electron/install.js in engine/, or pass --engine-dir",
                     pt.display()
                 ),
             )

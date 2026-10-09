@@ -48,7 +48,9 @@ fn main() -> eframe::Result {
             });
         launch::demo_config(&Paths::from_env().state, rt.as_ref(), mock, launch::demo_extra(&cli.faults))
     } else {
-        launch::real_config(&cli.engine_dir)
+        launch::real_config(&cli.engine_dir.clone().unwrap_or_else(|| {
+            launch::default_engine_dir(std::env::current_exe().ok().as_deref())
+        }))
     };
     let backend = cfg.and_then(Backend::start).unwrap_or_else(|e| {
         eprintln!("presto: {e}");
