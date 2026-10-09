@@ -155,7 +155,14 @@ Plans:
   1. The AUR package builds and runs on a clean Arch system, and no artifact contains libwidevinecdm.
   2. First run fetches the CDM at runtime and playback works.
   3. A document lists CDM licensing, Apple ToS and Flathub policy blockers.
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 07-01-PLAN.md: `cdm` IPC event (proto 1.2) and engine CDM reporting with 120 s timeout (wave 1)
+- [ ] 07-02-PLAN.md: Supervisor holds drift during CDM download; UI shows CDM progress and failure (wave 2)
+- [ ] 07-03-PLAN.md: Exe-relative engine dir; PKGBUILD, desktop entry, icon, CDM scan script (wave 1)
+- [ ] 07-04-PLAN.md: docs/DISTRIBUTION.md blockers, feasibility, end-user section; README link (wave 1)
+- [ ] 07-05-PLAN.md: Real makepkg build and scan, manual chroot and first-run checklist (wave 3, checkpoint)
 
 ## Progress
 
@@ -167,4 +174,4 @@ Plans:
 | 4. Data Layer and Cache | 9/9 | Complete | 2026-10-08 |
 | 5. Playback UI and Demo Mode | 11/11 | Complete    | 2026-10-08 |
 | 6. Desktop Integration | 4/5 | In Progress| 2026-10-08 |
-| 7. Packaging and Distribution Notes | 0/TBD | Not started | - |
+| 7. Packaging and Distribution Notes | 0/5 | Not started | - |
