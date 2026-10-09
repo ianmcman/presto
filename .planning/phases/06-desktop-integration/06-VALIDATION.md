@@ -1,9 +1,9 @@
 ---
 phase: 06
 slug: desktop-integration
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-10-08
 ---
 
@@ -32,35 +32,34 @@ created: 2026-10-08
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 06-01-T1 | 01 | 1 | DESK-02 | schema/unit | `cargo test -p presto-ipc` | W0 creates | ⬜ pending |
-| 06-01-T2 | 01 | 1 | DESK-02 | unit | `cargo test -p presto --lib cli:: ctl::` | W0 creates | ⬜ pending |
-| 06-02-T1 | 02 | 2 | DESK-01, DESK-02 | unit | `cargo test -p presto --lib control::` | W0 creates | ⬜ pending |
-| 06-02-T2 | 02 | 2 | DESK-01, DESK-02 | unit | `cargo test -p presto --lib status::` | W0 creates | ⬜ pending |
-| 06-03-T1 | 03 | 3 | DESK-02 | integration | `cargo test -p presto --lib ctl:: && cargo test -p presto --test ctl_server` | W0 creates | ⬜ pending |
-| 06-03-T2 | 03 | 3 | DESK-02 | integration | `cargo test -p presto --test cli_e2e` | W0 creates | ⬜ pending |
-| 06-04-T1 | 04 | 4 | DESK-01 | unit | `cargo test -p presto --lib desktop::` | W0 creates | ⬜ pending |
-| 06-04-T2 | 04 | 4 | DESK-01 | integration (private bus) | `dbus-run-session -- cargo test -p presto --test desktop_mpris && cargo test -p presto-core --test engine_switches` | W0 creates | ⬜ pending |
-| 06-05-T1 | 05 | 5 | DESK-01, DESK-02 | suite | `cargo test --workspace && dbus-run-session -- cargo test -p presto --test desktop_mpris` | yes | ⬜ pending |
-| 06-05-T2 | 05 | 5 | DESK-01, DESK-02 | manual | 06-MANUAL-CHECKLIST.md | n/a | ⬜ pending |
+| 06-01-T1 | 01 | 1 | DESK-02 | schema/unit | `cargo test -p presto-ipc` | yes | ✅ pass (28 tests) |
+| 06-01-T2 | 01 | 1 | DESK-02 | unit | `cargo test -p presto --lib cli:: ctl::` | yes | ✅ pass (21 tests) |
+| 06-02-T1 | 02 | 2 | DESK-01, DESK-02 | unit | `cargo test -p presto --lib control::` | yes | ✅ pass (18 tests) |
+| 06-02-T2 | 02 | 2 | DESK-01, DESK-02 | unit | `cargo test -p presto --lib status::` | yes | ✅ pass (20 tests) |
+| 06-03-T1 | 03 | 3 | DESK-02 | integration | `cargo test -p presto --lib ctl:: && cargo test -p presto --test ctl_server` | yes | ✅ pass (17 tests) |
+| 06-03-T2 | 03 | 3 | DESK-02 | integration | `cargo test -p presto --test cli_e2e` | yes | ✅ pass (4 tests) |
+| 06-04-T1 | 04 | 4 | DESK-01 | unit | `cargo test -p presto --lib desktop::` | yes | ✅ pass (17 tests) |
+| 06-04-T2 | 04 | 4 | DESK-01 | integration (private bus) | `dbus-run-session -- cargo test -p presto --test desktop_mpris && cargo test -p presto-core --test engine_switches` | yes | ✅ pass (2 tests) |
+| 06-05-T1 | 05 | 5 | DESK-01, DESK-02 | suite | `cargo test --workspace && dbus-run-session -- cargo test -p presto --test desktop_mpris` | yes | ✅ pass (full suite) |
 
 ## Wave 0 Requirements
 
-- [ ] `crates/presto/src/status.rs` table tests
-- [ ] `crates/presto/tests/ctl_server.rs`
-- [ ] `crates/presto/tests/desktop_mpris.rs`
-- [ ] insta snapshot for status JSON in presto-ipc
+- [x] `crates/presto/src/status.rs` table tests — 20 tests verified
+- [x] `crates/presto/tests/ctl_server.rs` — 5 tests verified
+- [x] `crates/presto/tests/desktop_mpris.rs` — 1 test verified
+- [x] insta snapshot for status JSON in presto-ipc — 6 schema tests verified
 
 ## Manual-Only Verifications
 
 | Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
+|----------|-------------|----------|-------------------|
 | Media keys on KDE/GNOME/waybar; Raise/Close from minimized window | DESK-01, DESK-02 | needs a real Wayland desktop | checklist in phase VERIFICATION |
 
 ## Validation Sign-Off
 
-- [ ] All tasks have automated verify or Wave 0 dependencies
-- [ ] No 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have automated verify or Wave 0 dependencies
+- [x] No 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** complete — all automated tests pass; manual checklist ready for user verification
