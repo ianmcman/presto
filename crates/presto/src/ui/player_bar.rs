@@ -87,8 +87,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                 });
             });
         });
-        // right: queue toggle and volume
-        cols[2].with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+        // right: queue toggle and volume, on the same line as the transport buttons
+        let w = cols[2].available_width();
+        cols[2].allocate_ui_with_layout(vec2(w, theme::PLAY_HIT), egui::Layout::right_to_left(egui::Align::Center), |ui| {
             let now = app.now();
             match thin_slider(ui, &pal, Id::new("volume"), p.volume, 96.0, &tr("Volume")) {
                 SliderEvent::Drag(v) => {
