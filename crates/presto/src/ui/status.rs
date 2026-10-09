@@ -5,8 +5,8 @@ use crate::model::Action;
 use crate::theme;
 use crate::ui::widgets::{BannerKind, banner};
 use egui::{RichText, Ui};
-use presto_core::EngineStatus;
-use presto_ipc::AuthState;
+use presto_core::{CdmInfo, EngineStatus};
+use presto_ipc::{AuthState, CdmState};
 
 fn panel(ui: &mut Ui, app: &App, title: &str, lines: &[String], mono: &[String], button: Option<&str>) -> bool {
     let pal = app.palette;
@@ -47,10 +47,20 @@ pub fn blocking(app: &mut App, ui: &mut Ui) -> bool {
             true
         }
         (EngineStatus::Starting, _) => {
+            if let Some(CdmInfo { state: CdmState::Failed, message, .. }) = &app.state.cdm {
+                let lines = [
+                    message.clone().unwrap_or_else(|| tr("unknown error")),
+                    tr("Check your network connection, then restart Presto to retry."),
+                ];
+                panel(ui, app, &tr("Couldn't download the Widevine playback component"), &lines, &[], None);
+                return true;
+            }
+            let checking = matches!(app.state.cdm, Some(CdmInfo { state: CdmState::Checking, .. }));
+            let text = if checking { tr("Preparing playback components…") } else { tr("Starting the engine…") };
             ui.vertical_centered(|ui| {
                 ui.add_space(theme::XXL);
                 ui.add(egui::Spinner::new());
-                ui.label(RichText::new(tr("Starting the engine…")).color(app.palette.secondary));
+                ui.label(RichText::new(text).color(app.palette.secondary));
             });
             true
         }
