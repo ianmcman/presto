@@ -54,7 +54,7 @@
 ### Packaging
 
 - [ ] **PKG-01**: AUR package builds with no Widevine CDM in any artifact; CDM fetched at runtime
-- [ ] **PKG-02**: Distribution blockers (CDM licensing, ToS, Flathub policy) are documented
+- [x] **PKG-02**: Distribution blockers (CDM licensing, ToS, Flathub policy) are documented
 
 ## v2 Requirements
 
@@ -100,7 +100,7 @@
 | DESK-01 | Phase 6 | Pending |
 | DESK-02 | Phase 6 | Complete |
 | PKG-01 | Phase 7 | Pending |
-| PKG-02 | Phase 7 | Pending |
+| PKG-02 | Phase 7 | Complete |
 | SPIKE-01 | Phase 2 | Complete |
 | SPIKE-02 | Phase 2 | Complete |
 | SPIKE-03 | Phase 2 | Complete |
