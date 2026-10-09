@@ -1,0 +1,36 @@
+# Maintainer: Ian McManus
+# Prebuilt release tarball, nothing compiled here. The Widevine CDM is never fetched or shipped here;
+# castlabs Electron downloads it into the user's profile on first run.
+pkgname=presto-bin
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Native Apple Music client for Linux (egui UI, castlabs Electron playback engine)'
+arch=(x86_64)  # no Linux aarch64 Widevine CDM exists
+url='https://github.com/ianmcman/presto'
+license=('MIT')
+depends=(gtk3 nss alsa-lib libcups libdrm mesa libglvnd libxkbcommon wayland
+         libx11 libxcb libxcomposite libxdamage libxrandr libxcursor libxi libxinerama
+         libxext libxfixes libxrender at-spi2-core dbus glib2 pango cairo systemd-libs)
+provides=(presto)
+conflicts=(presto presto-git)
+options=(!strip !debug !lto)  # stripping Electron's binaries is unsafe and slow
+source=("presto-$pkgver-x86_64.tar.gz::$url/releases/download/v$pkgver/presto-$pkgver-x86_64.tar.gz")
+# SKIP until the first release exists; after each release replace with the value from the release's .sha256 asset
+sha256sums=('SKIP')
+
+package() {
+  cd "presto-$pkgver-x86_64"
+  install -Dm755 bin/presto "$pkgdir/usr/bin/presto"
+  install -Dm755 bin/presto-engine-mock "$pkgdir/usr/bin/presto-engine-mock"  # for presto --demo
+  install -d "$pkgdir/usr/lib/presto"
+  cp -a engine "$pkgdir/usr/lib/presto/engine"
+  # Namespace sandbox works without setuid on Arch (spike); never setuid, never disable the sandbox.
+  chmod 755 "$pkgdir/usr/lib/presto/engine/node_modules/electron/dist/chrome-sandbox"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 presto.desktop "$pkgdir/usr/share/applications/presto.desktop"
+  install -Dm644 presto.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/presto.svg"
+  if find "$pkgdir" -iname '*widevine*' | grep -q .; then
+    echo 'Widevine file in package' >&2
+    return 1
+  fi
+}
