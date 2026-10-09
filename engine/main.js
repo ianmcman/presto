@@ -10,6 +10,7 @@ const { app, BrowserWindow, ipcMain, session, components } = require('electron')
 const { allowed, safe, PERMISSIONS } = require('./guard');
 const { resolveBridge } = require('./bridge-path');
 const { windowAction } = require('./window-policy');
+const { CDM_TIMEOUT_MS, cdmMessage, withTimeout } = require('./cdm');
 
 const log = (...a) => console.error('presto-engine', ...a);
 
@@ -61,6 +62,8 @@ const send = (obj) => {
   if (!sock.writable) return; // peer gone: dropping is fine, we are quitting
   try { sock.write(JSON.stringify(obj) + '\n', () => {}); } catch (e) { log('send failed', e.message); }
 };
+// The hello listener is registered first, so a queued cdm event always follows hello.
+const sendEvt = (evt) => { if (sock.connecting) sock.once('connect', () => send({ t: 'evt', evt })); else send({ t: 'evt', evt }); };
 sock.on('error', () => {}); // logged and handled by the quit hook below
 // Never show Electron's modal error dialog: it blocks app.quit and cookie flush.
 process.on('uncaughtException', (e) => {
@@ -73,7 +76,7 @@ const unavailable = (id) => send({ t: 'res', id, outcome: { status: 'err', error
 
 sock.on('connect', () => send({
   t: 'hello',
-  proto: { major: 1, minor: 1 },
+  proto: { major: 1, minor: 2 },
   role: 'engine',
   capabilities: ['playback', 'queue', 'api', 'window'],
   engine: `presto-engine ecs ${process.versions.electron}`,
@@ -159,8 +162,19 @@ function attachDiag(wc) {
 }
 
 app.whenReady().then(async () => {
-  await components.whenReady();
-  log('cdm', JSON.stringify(components.status()));
+  sendEvt({ type: 'cdm', state: 'checking', version: null, message: null });
+  try {
+    await withTimeout(components.whenReady(), CDM_TIMEOUT_MS);
+  } catch (e) {
+    const message = cdmMessage(e);
+    log('cdm failed', message);
+    sendEvt({ type: 'cdm', state: 'failed', version: null, message });
+    return; // D-11: stay alive with no window; presto shows the error, retry is the next launch
+  }
+  const st = components.status();
+  log('cdm', JSON.stringify(st));
+  const version = st?.[components.WIDEVINE_CDM_ID]?.version;
+  sendEvt({ type: 'cdm', state: 'ready', version: typeof version === 'string' ? version.slice(0, 64) : null, message: null });
   const ses = session.fromPartition('persist:presto');
   ses.setUserAgent(UA);
   ses.setPermissionRequestHandler((_wc, perm, cb) => {
