@@ -99,9 +99,10 @@ pub fn start(backend: &crate::backend::Backend, ctl: Arc<dyn Control>, app: np::
 
     let mut rx = backend.state();
     let pos = Position::new();
-    let mut tick = interval(Duration::from_secs(1));
 
     backend.spawn(async move {
+        let mut tick = interval(Duration::from_secs(1));
+
         loop {
             tokio::select! {
                 r = rx.changed() => {

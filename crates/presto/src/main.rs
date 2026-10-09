@@ -82,8 +82,8 @@ fn main() -> eframe::Result {
                     }
                 }
             };
-            backend.spawn(ctl::serve(listener, backend.state(), ctl));
-            // desktop: Plan 06-04 (MPRIS start here)
+            backend.spawn(ctl::serve(listener, backend.state(), ctl.clone()));
+            presto::desktop::start(&backend, ctl, presto::desktop::app_for(demo));
             Ok(Box::new(App::new(backend, demo, &cc.egui_ctx)))
         }),
     )
