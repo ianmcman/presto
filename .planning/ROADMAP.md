@@ -158,7 +158,7 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 07-01-PLAN.md: `cdm` IPC event (proto 1.2) and engine CDM reporting with 120 s timeout (wave 1)
+- [x] 07-01-PLAN.md: `cdm` IPC event (proto 1.2) and engine CDM reporting with 120 s timeout (wave 1)
 - [ ] 07-02-PLAN.md: Supervisor holds drift during CDM download; UI shows CDM progress and failure (wave 2)
 - [ ] 07-03-PLAN.md: Exe-relative engine dir; PKGBUILD, desktop entry, icon, CDM scan script (wave 1)
 - [x] 07-04-PLAN.md: docs/DISTRIBUTION.md blockers, feasibility, end-user section; README link (wave 1)
