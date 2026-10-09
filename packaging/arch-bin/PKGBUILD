@@ -15,8 +15,8 @@ provides=(presto)
 conflicts=(presto presto-git)
 options=(!strip !debug !lto)  # stripping Electron's binaries is unsafe and slow
 source=("presto-$pkgver-x86_64.tar.gz::$url/releases/download/v$pkgver/presto-$pkgver-x86_64.tar.gz")
-# SKIP until the first release exists; after each release replace with the value from the release's .sha256 asset
-sha256sums=('SKIP')
+# after each release, replace with the value from the release's .sha256 asset
+sha256sums=('6469cc4dba37a749f503931bf2c97e5083cb3b6a52cdcd0fc553826f760ccf1d')
 
 package() {
   cd "presto-$pkgver-x86_64"
