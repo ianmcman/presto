@@ -12,24 +12,22 @@ Full-catalog Apple Music playback and library browsing from a fast native Linux 
 
 ### Validated
 
-- Spotifast seams documented (`docs/SPOTIFAST-SEAMS.md`). Validated in Phase 1: IPC Contract and Mock Engine
-- IPC wire contract, version handshake, token-name guard and fault-injecting mock engine. Validated in Phase 1: IPC Contract and Mock Engine
-- Data layer: ApiClient, SQLite page cache, 500 MB artwork cache (https/mzstatic only, 10 MB cap), cache-then-revalidate paging, search, offline serving, sign-out wipe. Validated in Phase 4: Data Layer and Cache
-- Desktop integration: MPRIS now-playing and media keys, `presto <subcommand>` control socket with `status --json --watch`, flock single instance. Validated in Phase 6: Desktop Integration
-- Engine feasibility spike: MusicKit reachable, sign-in persists, full-track playback with seek, library API proxied, events streamed; go on castlabs ECS v44.5.1+wvcus. Validated in Phase 2: Engine Feasibility Spike Gate
+- ✓ Spotifast seams documented (`docs/SPOTIFAST-SEAMS.md`) (v1.0)
+- ✓ IPC wire contract, version handshake, token-name guard and fault-injecting mock engine (v1.0)
+- ✓ Engine feasibility spike: go on castlabs ECS v44.5.1+wvcus (v1.0)
+- ✓ Supervised hidden engine with recovery, runtime bridge, queue mirror, Apple sign-in that persists (v1.0)
+- ✓ Data layer: ApiClient, SQLite page cache, artwork cache, search, offline serving, sign-out wipe (v1.0)
+- ✓ Native egui UI with demo mode (`presto --demo`) (v1.0)
+- ✓ MPRIS, media keys, `presto <subcommand>` control socket, single instance (v1.0)
+- ✓ Arch packaging (`presto-git`, `presto-bin`) with the CDM fetched at runtime; distribution blockers documented (v1.0)
 
 ### Active
 
-- [ ] Native egui UI ported from spotifast (views, theming, i18n, CLI control, MPRIS)
-- [ ] presto-engine hosts music.apple.com in a hidden Widevine Chromium engine and injects a runtime-loaded bridge script
-- [ ] JSON IPC protocol (commands, proxied requests with IDs/timeouts, events, versioning, crash/hang/reload recovery)
-- [ ] Single queue owner (decided in planning) to avoid desync
-- [ ] Sign-in via Apple's own login flow; session persists in the engine profile
-- [ ] Library, playlists, search, albums, artists, recently played, recommendations, lyrics (if available) via the proxy
-- [ ] Local cache (artwork, library snapshots) for fast, offline-ish browsing
-- [ ] MPRIS driven by engine events (media keys, KDE/GNOME/waybar)
-- [ ] Demo mode with a mock engine (equivalent to spotifast `--demo`)
-- [ ] Packaging (AUR, AppImage, Flatpak where feasible)
+- [ ] Publish to the AUR
+- [ ] AppImage and Flatpak packaging (blocked or deferred per `docs/DISTRIBUTION.md`)
+- [ ] Lyrics, if the web player exposes them
+- [ ] Re-check Apple, Flathub and castlabs terms against the live pages
+- [ ] Offline first-run behavior verified (v1.0 checklist item 7)
 
 ### Out of Scope
 
@@ -62,11 +60,21 @@ Full-catalog Apple Music playback and library browsing from a fast native Linux 
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Hybrid native UI + hidden Chromium engine | Only legitimate full-playback path on Linux is the web player with Widevine | — Pending |
-| Rust holds no Apple tokens | Avoid token extraction and keep the trust boundary at the page origin | — Pending |
-| Runtime-loaded bridge script | Apple web player changes should not need a rebuild | — Pending |
-| Engine choice (CEF / castlabs Electron / CDP Chrome) | Decided by the feasibility spike | — Pending |
-| Queue owner (Rust vs MusicKit) | Decided in full plan to avoid two sources of truth | — Pending |
+| Hybrid native UI + hidden Chromium engine | Only legitimate full-playback path on Linux is the web player with Widevine | ✓ Good |
+| Rust holds no Apple tokens | Avoid token extraction and keep the trust boundary at the page origin | ✓ Good |
+| Runtime-loaded bridge script | Apple web player changes should not need a rebuild | ✓ Good |
+| Engine choice (CEF / castlabs Electron / CDP Chrome) | Decided by the feasibility spike | ✓ Good: castlabs ECS v44.5.1+wvcus |
+| Queue owner (Rust vs MusicKit) | Decided in full plan to avoid two sources of truth | ✓ Good |
+| CDM downloaded at first run, never shipped | Widevine cannot be redistributed | ✓ Good |
+| Prebuilt `presto-bin` from a GitHub release | Source build takes about 9 minutes | ✓ Good |
+
+## Current State
+
+v1.0 shipped 2026-10-09: about 17.9k lines of Rust, 0.7k of JavaScript. Installs on Arch via `presto-bin` (no compile) or `presto-git`. Release v0.1.0 is public. Known gaps are listed in `.planning/MILESTONES.md`.
+
+## Next Milestone Goals
+
+AUR publication, packaging beyond Arch if the blockers allow, and any playback bugs found in daily use.
 
 ## Evolution
 
@@ -86,4 +94,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-09 after Phase 6*
+*Last updated: 2026-10-09 after v1.0 milestone*
