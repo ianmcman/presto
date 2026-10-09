@@ -20,7 +20,7 @@ Presto never holds Apple credentials. The engine adds authentication inside the 
 
 The engine sends `hello` first. Presto replies with its own `hello`.
 
-Protocol version is `1.1`. 1.1 added `bridge_ready`, `show_window`, the `set_queue` `play` field and the `window` capability. A minor mismatch is tolerated and new features are gated by capabilities. A major mismatch is a hard error with a message naming both versions; the side that detects it closes the connection (the mock exits with code 2).
+Protocol version is `1.2`. 1.2 added the `cdm` event. 1.1 added `bridge_ready`, `show_window`, the `set_queue` `play` field and the `window` capability. A minor mismatch is tolerated and new features are gated by capabilities. A major mismatch is a hard error with a message naming both versions; the side that detects it closes the connection (the mock exits with code 2).
 
 | Capability | Meaning |
 |---|---|
@@ -113,6 +113,9 @@ Tag `type`.
 | `auth` | `state`: `signed_out`, `signing_in`, `signed_in`, `expired` |
 | `error` | `error` |
 | `bridge_ready` | `version`, `capabilities`, `musickit_build` (string or null) |
+| `cdm` | `state`: `checking`, `ready`, `failed`; `version` (string or null); `message` (string or null) |
+
+`cdm` reports the Widevine CDM component. The engine sends `checking` before it waits for the component (the first run downloads it, about 10 to 20 MB), then `ready` with the CDM `version` or `failed` with a `message` naming the cause. Engines without a CDM, including the mock by default, never send it. Presto suspends the bridge drift timer while the last state is `checking` and restarts it on `ready`.
 
 `bridge_ready` is sent each time the page bridge installs. The bridge's `rev` and `seq` counters restart there, so receivers reset their baselines. Presto queues commands until it arrives and reports drift after 15 s without it.
 

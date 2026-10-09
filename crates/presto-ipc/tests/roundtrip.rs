@@ -7,6 +7,19 @@ fn rt(f: &Frame) {
 }
 
 #[test]
+fn cdm_shape() {
+    let e = Event::Cdm {
+        state: CdmState::Checking,
+        version: None,
+        message: None,
+    };
+    assert_eq!(
+        serde_json::to_value(&e).unwrap(),
+        json!({"type":"cdm","state":"checking","version":null,"message":null})
+    );
+}
+
+#[test]
 fn cmd_shape() {
     let f = Frame::Cmd {
         id: 7,
@@ -27,7 +40,7 @@ fn hello_shape() {
     ));
     assert_eq!(
         serde_json::to_value(&f).unwrap(),
-        json!({"t":"hello","proto":{"major":1,"minor":1},"role":"engine","capabilities":["playback"],"engine":"x 1"})
+        json!({"t":"hello","proto":{"major":1,"minor":2},"role":"engine","capabilities":["playback"],"engine":"x 1"})
     );
 }
 
@@ -134,6 +147,21 @@ fn all_variants_roundtrip() {
             capabilities: vec![],
             musickit_build: None,
         },
+        Event::Cdm {
+            state: CdmState::Checking,
+            version: None,
+            message: None,
+        },
+        Event::Cdm {
+            state: CdmState::Ready,
+            version: Some("4.10.3112.0".into()),
+            message: None,
+        },
+        Event::Cdm {
+            state: CdmState::Failed,
+            version: None,
+            message: Some("timed out after 120 s".into()),
+        },
     ];
     let faults = vec![
         FaultSpec::None,
@@ -184,7 +212,7 @@ fn version_check() {
     let mut h = Hello::new(Role::Engine, &[], None);
     h.proto = ProtoVersion { major: 2, minor: 0 };
     let e = h.check(PROTO).unwrap_err().to_string();
-    assert!(e.contains("1.1") && e.contains("2.0"), "{e}");
+    assert!(e.contains("1.2") && e.contains("2.0"), "{e}");
     h.proto = ProtoVersion { major: 1, minor: 9 };
     assert!(h.check(PROTO).is_ok());
 }

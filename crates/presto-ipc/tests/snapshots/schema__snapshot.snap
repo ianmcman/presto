@@ -196,6 +196,15 @@ expression: "schemars::schema_for!(presto_ipc::Frame)"
         "expired"
       ]
     },
+    "CdmState": {
+      "description": "Widevine CDM component state (1.2). Engines without a CDM never send it.",
+      "type": "string",
+      "enum": [
+        "checking",
+        "ready",
+        "failed"
+      ]
+    },
     "Command": {
       "oneOf": [
         {
@@ -686,6 +695,35 @@ expression: "schemars::schema_for!(presto_ipc::Frame)"
             "type",
             "version",
             "capabilities"
+          ]
+        },
+        {
+          "description": "Sent before the engine waits for the CDM, then once with the outcome.",
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "state": {
+              "$ref": "#/$defs/CdmState"
+            },
+            "type": {
+              "type": "string",
+              "const": "cdm"
+            },
+            "version": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "state"
           ]
         }
       ]

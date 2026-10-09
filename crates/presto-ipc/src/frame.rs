@@ -15,7 +15,7 @@ impl fmt::Display for ProtoVersion {
     }
 }
 
-pub const PROTO: ProtoVersion = ProtoVersion { major: 1, minor: 1 };
+pub const PROTO: ProtoVersion = ProtoVersion { major: 1, minor: 2 };
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]

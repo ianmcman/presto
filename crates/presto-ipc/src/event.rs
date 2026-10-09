@@ -32,6 +32,15 @@ pub struct QueueItem {
     pub playable: bool,
 }
 
+/// Widevine CDM component state (1.2). Engines without a CDM never send it.
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CdmState {
+    Checking,
+    Ready,
+    Failed,
+}
+
 /// `seq` increments on every user-initiated state change (play, pause, seek,
 /// skip, set_queue) so receivers drop stale Progress.
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
@@ -74,5 +83,11 @@ pub enum Event {
         version: String,
         capabilities: Vec<String>,
         musickit_build: Option<String>,
+    },
+    /// Sent before the engine waits for the CDM, then once with the outcome.
+    Cdm {
+        state: CdmState,
+        version: Option<String>,
+        message: Option<String>,
     },
 }

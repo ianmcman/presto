@@ -131,6 +131,7 @@ impl Session {
             }
             Event::Error { .. } => "error",
             Event::BridgeReady { .. } => "bridge_ready",
+            Event::Cdm { .. } => "cdm",
         };
         *self.counts.entry(name).or_insert(0) += 1;
     }
