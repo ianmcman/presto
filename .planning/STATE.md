@@ -75,6 +75,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 261008-bsb | Harden artwork fetch: https *.mzstatic.com only, no redirects, 10 MB cap | 2026-10-08 | e882b55 | [261008-bsb-harden-artwork-fetch-https-mzstatic-host](./quick/261008-bsb-harden-artwork-fetch-https-mzstatic-host/) |
+| 261008-v6c | Add presto-bin prebuilt install path: release workflow, pack script, PKGBUILD, docs | 2026-10-08 | 956ff75 | [261008-v6c-add-prebuilt-binary-install-path-presto-](./quick/261008-v6c-add-prebuilt-binary-install-path-presto-/) |
 | Phase 05 P05 | 15min | 2 tasks | 2 files |
 | Phase 05 P06 | 15min | 2 tasks | 7 files |
 | Phase 05 P07 | 25min | 3 tasks | 19 files |
